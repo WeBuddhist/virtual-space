@@ -43,6 +43,8 @@ const STRINGS = {
   micDenied: { en: 'The microphone could not be opened. Check your browser\u2019s permission.', bo: 'སྐད་སྒྲ་ལེན་ཆས་ཁ་ཕྱེ་མ་ཐུབ། དྲ་བཤར་ཆས་ཀྱི་ཆོག་མཆན་ལ་ལྟོས།' },
   voices: { en: 'Voices', bo: 'མིའི་སྐད།' },
   voicesSub: { en: 'People speaking nearby', bo: 'ཉེ་འཁོར་དུ་སྐད་ཆ་ཤོད་མཁན།' },
+  done: { en: 'Done', bo: 'ཚར།' },
+  practice: { en: 'Practice', bo: 'ཉམས་ལེན།' },
   offer: { en: 'Offer', bo: 'མཆོད་པ།' },
   offerTitle: { en: 'Make an offering', bo: 'མཆོད་པ་འབུལ།' },
   offerSub: { en: 'Flowers fall over the nearest shrine, and everyone in the room sees them.', bo: 'མེ་ཏོག་ཉེ་ཤོས་ཀྱི་མཆོད་གནས་སུ་འབབ། ཁང་མིག་འདིའི་མི་ཚང་མས་མཐོང་།' },

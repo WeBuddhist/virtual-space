@@ -363,12 +363,18 @@ document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
 });
 
 function updateDock() {
-  const active: Record<string, boolean> = { palms: mode === 'palms', bow: mode === 'bow', moktak: mode === 'instrument', beads: mode === 'beads' };
-  document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
-    const on = active[b.dataset.practice!];
+  const active: Record<string, boolean> = { palms: mode === 'palms', bow: mode === 'bow', instrument: mode === 'instrument', beads: mode === 'beads' };
+  let lens = -1;
+  document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b, i) => {
+    const on = !!active[b.dataset.practice!];
+    if (on) lens = i;
     b.classList.toggle('active', on);
     b.setAttribute('aria-pressed', String(on));
   });
+  // the tab bar's lens slides under the practice in progress
+  const dock = document.querySelector<HTMLElement>('.dock')!;
+  dock.classList.toggle('lit', lens >= 0);
+  if (lens >= 0) dock.style.setProperty('--ti', String(lens));
   const bowLabel = document.querySelector<HTMLElement>('.bow-label')!;
   bowLabel.dataset.i18n = mode === 'bow' ? 'stopBow' : 'bow';
   bowLabel.textContent = t(bowLabel.dataset.i18n as Key);
@@ -640,11 +646,8 @@ setInterval(() => {
   $('orb').setAttribute('aria-label', isDay(temple) ? t('day') : t('night'));
 }, 1000);
 
-const langBtn = $('btn-lang');
-langBtn.addEventListener('click', () => setLang(getLang() === 'en' ? 'bo' : 'en'));
 document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang as 'en' | 'bo')));
 function renderLang() {
-  langBtn.textContent = getLang() === 'en' ? 'བོད' : 'EN';
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === getLang())));
   $('temple-name').textContent = pick(temple.name);
   $('temple-place').textContent = pick(temple.place);
@@ -738,6 +741,8 @@ function renderRooms(counts: Record<string, number> | null) {
 }
 
 $('btn-exit').addEventListener('click', () => {
+  // leaving is offered in Settings; the sheet sits above everything, so close it first
+  (document.getElementById('dlg-settings') as HTMLDialogElement).close();
   net?.close();
   net = null;
   audio.disable();

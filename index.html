@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#1e2b47" />
+    <meta name="theme-color" content="#14110f" />
     <title>WeBuddhist Space</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&family=Noto+Sans+Tibetan:wght@400;600&family=Noto+Serif+Tibetan:wght@500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tibetan:wght@400;600&family=Noto+Serif+Tibetan:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237a1f22'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23e0a526'/%3E%3C/svg%3E" />
   </head>
   <body>
@@ -15,53 +15,47 @@
       <div id="world"></div>
       <div id="tags" aria-hidden="true"></div>
 
-      <header class="hud hud-left">
-        <button class="pill-btn icon" id="btn-exit" data-i18n-label="exit">
-          <svg viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l-4 4 4 4M10 12h10" /></svg>
+      <!-- one frosted bar: the temple (opens the room picker), who is here, and quick controls -->
+      <header class="topbar glass">
+        <button class="home" id="btn-room" data-i18n-label="rooms">
+          <span class="orb" id="orb" role="img"></span>
+          <span class="titles"><b id="temple-name"></b><span><span id="temple-place"></span><span class="sep"> · </span><span class="room-tag"><span data-i18n="room"></span> <span id="room-number">1</span></span></span></span>
         </button>
-        <button class="plate" id="btn-room" data-i18n-label="rooms">
-          <strong id="temple-name"></strong>
-          <small><span id="temple-place"></span><span class="room-tag"><span data-i18n="room"></span> <span id="room-number">1</span></span></small>
-        </button>
-        <button class="pill-btn count" id="btn-people" data-i18n-label="visitors">
-          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3.5 19c.8-3.4 2.9-5 5.5-5s4.7 1.6 5.5 5M15.5 5.5a3 3 0 0 1 0 5.6M17.5 14.4c1.6.7 2.6 2.2 3 4.6" /></svg>
-          <span id="people-count">01</span><span class="cap">/<span id="people-cap">100</span></span>
-        </button>
-      </header>
-
-      <header class="hud hud-right">
-        <span class="orb" id="orb" role="img"></span>
-        <button class="pill-btn icon" id="btn-eyes" data-i18n-label="eyesView" aria-pressed="false">
-          <svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
-        </button>
-        <button class="pill-btn icon mic" id="btn-mic" data-i18n-label="micOn" aria-pressed="false">
-          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" /><path class="mic-x" d="M4 4l16 16" /></svg>
-        </button>
-        <button class="pill-btn icon" id="btn-sound" data-i18n-label="soundOn">
+        <button class="here" id="btn-people" data-i18n-label="visitors"><i></i><span id="people-count">01</span><span class="cap">/<span id="people-cap">100</span></span></button>
+        <button class="ic" id="btn-sound" data-i18n-label="soundOn">
           <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="sound-x" d="M16 9l5 6M21 9l-5 6" /><path class="sound-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /></svg>
         </button>
-        <button class="pill-btn lang" id="btn-lang">བོད</button>
-        <button class="pill-btn icon" id="btn-settings" data-i18n-label="settings">
+        <button class="ic mic" id="btn-mic" data-i18n-label="micOn" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" /><path class="mic-x" d="M4 4l16 16" /></svg>
+        </button>
+        <button class="ic eyes" id="btn-eyes" data-i18n-label="eyesView" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
+        </button>
+        <button class="ic" id="btn-settings" data-i18n-label="settings">
           <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>
         </button>
       </header>
-      <button class="chip chant-chip" id="btn-chant" data-i18n="listenChant"></button>
 
-      <p class="hint" id="hint" data-i18n="hintDesktop"></p>
-      <button class="chip incense-chip" id="btn-incense" hidden>
+      <!-- quiet notes under the bar: the chanting, and the first-visit hint -->
+      <button class="pill glass chant-chip" id="btn-chant" data-i18n="listenChant"></button>
+      <p class="pill glass hint" id="hint" data-i18n="hintDesktop"></p>
+      <button class="pill glass incense-chip" id="btn-incense" hidden>
         <svg viewBox="0 0 24 24"><path d="M12 21v-9M9 21h6M12 9c-2-2 2-3 0-6M15 9c-1.5-1.5 1.5-2.5 0-4.5" /></svg>
         <span data-i18n="incense"></span>
       </button>
 
-      <nav class="dock" aria-label="practice">
-        <button data-practice="palms"><svg viewBox="0 0 24 24"><path d="M12 3c-2 4-4 8-4 12a4 4 0 0 0 8 0c0-4-2-8-4-12zM12 3v16" /></svg><span data-i18n="palms"></span></button>
-        <button data-practice="bow"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5" /><path d="M5 20c1-5 4-8 7-8s6 3 7 8M8 16h8" /></svg><span class="bow-label" data-i18n="bow"></span></button>
-        <button data-practice="instrument"><svg viewBox="0 0 24 24"><ellipse cx="11" cy="14" rx="7" ry="6" /><path d="M6 14h10M15 8l4-4" /></svg><span data-i18n="instruments"></span></button>
-        <button data-practice="offer"><svg viewBox="0 0 24 24"><path d="M12 20c-4 0-7-2.5-7-6 2.5 0 5 1 7 3 2-2 4.5-3 7-3 0 3.5-3 6-7 6z" /><path d="M12 17c-2-2.5-2-6 0-9 2 3 2 6.5 0 9zM8.5 12.5C7 10.5 7 8 8 6c1.6 1 2.6 2.6 3 4.4M15.5 12.5c1.5-2 1.5-4.5.5-6.5-1.6 1-2.6 2.6-3 4.4" /></svg><span data-i18n="offer"></span></button>
-        <button data-practice="beads"><svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="1.6" /><circle cx="17" cy="6.5" r="1.6" /><circle cx="19" cy="12" r="1.6" /><circle cx="17" cy="17.5" r="1.6" /><circle cx="12" cy="20" r="1.6" /><circle cx="7" cy="17.5" r="1.6" /><circle cx="5" cy="12" r="1.6" /><circle cx="7" cy="6.5" r="1.6" /></svg><span data-i18n="beads"></span></button>
+      <!-- the practices, as a tab bar; the lens slides to the one in progress -->
+      <nav class="dock glass" aria-label="practice">
+        <div class="trow">
+          <button data-practice="palms"><svg viewBox="0 0 24 24"><path d="M12 3c-2 4-4 8-4 12a4 4 0 0 0 8 0c0-4-2-8-4-12zM12 3v16" /></svg><span data-i18n="palms"></span></button>
+          <button data-practice="bow"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5" /><path d="M5 20c1-5 4-8 7-8s6 3 7 8M8 16h8" /></svg><span class="bow-label" data-i18n="bow"></span></button>
+          <button data-practice="offer"><svg viewBox="0 0 24 24"><path d="M12 20c-4 0-7-2.5-7-6 2.5 0 5 1 7 3 2-2 4.5-3 7-3 0 3.5-3 6-7 6z" /><path d="M12 17c-2-2.5-2-6 0-9 2 3 2 6.5 0 9zM8.5 12.5C7 10.5 7 8 8 6c1.6 1 2.6 2.6 3 4.4M15.5 12.5c1.5-2 1.5-4.5.5-6.5-1.6 1-2.6 2.6-3 4.4" /></svg><span data-i18n="offer"></span></button>
+          <button data-practice="instrument"><svg viewBox="0 0 24 24"><ellipse cx="11" cy="14" rx="7" ry="6" /><path d="M6 14h10M15 8l4-4" /></svg><span data-i18n="instruments"></span></button>
+          <button data-practice="beads"><svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="1.6" /><circle cx="17" cy="6.5" r="1.6" /><circle cx="19" cy="12" r="1.6" /><circle cx="17" cy="17.5" r="1.6" /><circle cx="12" cy="20" r="1.6" /><circle cx="7" cy="17.5" r="1.6" /><circle cx="5" cy="12" r="1.6" /><circle cx="7" cy="6.5" r="1.6" /></svg><span data-i18n="beads"></span></button>
+        </div>
       </nav>
 
-      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
 
       <div class="practice-layer" id="practice-layer" hidden>
         <div class="practice-backdrop"></div>
@@ -70,67 +64,74 @@
       </div>
 
       <dialog id="dlg-rooms" class="sheet">
-        <header><h2 data-i18n="rooms"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
+        <header class="sheet-h"><b data-i18n="rooms"></b><button class="done" data-close data-i18n="done"></button></header>
         <p class="sub" data-i18n="roomsSub"></p>
-        <div class="row"><span id="room-current"></span><button class="link" id="room-refresh" data-i18n="refresh"></button></div>
+        <div class="sub-row"><span id="room-current"></span><button class="link" id="room-refresh" data-i18n="refresh"></button></div>
         <div class="room-grid" id="room-grid"></div>
       </dialog>
 
       <dialog id="dlg-offer" class="sheet">
-        <header><h2 data-i18n="offerTitle"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
+        <header class="sheet-h"><b data-i18n="offerTitle"></b><button class="done" data-close data-i18n="done"></button></header>
         <p class="sub" data-i18n="offerSub"></p>
-        <h3 data-i18n="flowers"></h3>
-        <div class="offer-grid" id="offer-flowers"></div>
-        <h3 data-i18n="incenseTitle"></h3>
-        <button class="offer-incense" id="offer-incense">
+        <h4 data-i18n="flowers"></h4>
+        <div class="list offer-list" id="offer-flowers"></div>
+        <h4 data-i18n="incenseTitle"></h4>
+        <button class="list offer-incense" id="offer-incense">
           <svg viewBox="0 0 24 24"><path d="M12 21v-9M9 21h6M12 9c-2-2 2-3 0-6M15 9c-1.5-1.5 1.5-2.5 0-4.5" /></svg>
           <span><strong data-i18n="incense"></strong><small data-i18n="incenseSub"></small></span>
         </button>
       </dialog>
 
       <dialog id="dlg-people" class="sheet">
-        <header><h2 data-i18n="visitors"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
-        <ul class="people" id="people-list"></ul>
+        <header class="sheet-h"><b data-i18n="visitors"></b><button class="done" data-close data-i18n="done"></button></header>
+        <ul class="list people" id="people-list"></ul>
       </dialog>
 
       <dialog id="dlg-settings" class="sheet">
-        <header><h2 data-i18n="settings"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
-        <h3 data-i18n="mySounds"></h3>
-        <p class="sub" data-i18n="mySoundsSub"></p>
-        <label class="slider"><span><strong data-i18n="ambient"></strong><small data-i18n="ambientSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="ambient" /></label>
-        <label class="slider"><span><strong data-i18n="effects"></strong><small data-i18n="effectsSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="effects" /></label>
-        <label class="slider"><span><strong data-i18n="chanting"></strong><small data-i18n="chantingSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="chant" /></label>
-        <label class="slider"><span><strong data-i18n="music"></strong><small data-i18n="musicSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="music" /></label>
-        <label class="slider"><span><strong data-i18n="voices"></strong><small data-i18n="voicesSub"></small></span><input type="range" min="0" max="1.5" step="0.01" data-bus="voices" /></label>
-        <div class="toggle-row" id="bow-row"><span><strong data-i18n="bowStyle"></strong></span><select id="bow-select" class="select"></select></div>
-        <div class="toggle-row"><span><strong data-i18n="chantPick"></strong></span><select id="chant-select" class="select"></select></div>
-        <div class="toggle-row" id="music-row"><span><strong data-i18n="music"></strong></span><select id="music-select" class="select"></select></div>
-        <div class="toggle-row"><span><strong data-i18n="background"></strong><small id="bg-desc"></small></span><button class="switch" id="bg-switch" role="switch"></button></div>
-        <div class="toggle-row"><span><strong data-i18n="language"></strong></span>
-          <div class="seg"><button data-lang="en">English</button><button data-lang="bo">བོད་ཡིག</button></div></div>
-        <details><summary data-i18n="controls"></summary><p class="sub" data-i18n="controlsBody"></p></details>
+        <header class="sheet-h"><b data-i18n="settings"></b><button class="done" data-close data-i18n="done"></button></header>
+        <h4 data-i18n="language"></h4>
+        <div class="seg"><button data-lang="en">English</button><button data-lang="bo" lang="bo">བོད་ཡིག</button></div>
+        <h4 data-i18n="mySounds"></h4>
+        <div class="list">
+          <label class="row slider"><span data-i18n="ambient"></span><input type="range" min="0" max="1" step="0.01" data-bus="ambient" /></label>
+          <label class="row slider"><span data-i18n="effects"></span><input type="range" min="0" max="1" step="0.01" data-bus="effects" /></label>
+          <label class="row slider"><span data-i18n="chanting"></span><input type="range" min="0" max="1" step="0.01" data-bus="chant" /></label>
+          <label class="row slider"><span data-i18n="music"></span><input type="range" min="0" max="1" step="0.01" data-bus="music" /></label>
+          <label class="row slider"><span data-i18n="voices"></span><input type="range" min="0" max="1.5" step="0.01" data-bus="voices" /></label>
+        </div>
+        <h4 data-i18n="practice"></h4>
+        <div class="list">
+          <div class="row" id="bow-row"><span data-i18n="bowStyle"></span><select id="bow-select" class="select"></select></div>
+          <div class="row"><span data-i18n="chantPick"></span><select id="chant-select" class="select"></select></div>
+          <div class="row" id="music-row"><span data-i18n="music"></span><select id="music-select" class="select"></select></div>
+          <div class="row"><span class="two-line"><span data-i18n="background"></span><small id="bg-desc"></small></span><button class="sw" id="bg-switch" role="switch"></button></div>
+        </div>
+        <details><summary data-i18n="controls"></summary><p class="hint-text" data-i18n="controlsBody"></p></details>
+        <button class="leave" id="btn-exit" data-i18n="exit"></button>
         <p class="credits"><a href="/audio/instruments/SOURCES.md" target="_blank" rel="noopener" data-i18n="soundCredits"></a></p>
       </dialog>
 
       <section class="screen loading" id="loading">
+        <div class="halo">
         <svg class="lamp" viewBox="0 0 64 96" aria-hidden="true">
           <path class="flame" d="M32 8c7 12 12 20 12 30a12 12 0 0 1-24 0c0-10 5-18 12-30z" />
           <path d="M14 62h36l-5 14H19z" /><path d="M24 76h16v8H24zM18 86h28" />
         </svg>
+        </div>
         <h1 id="loading-name"></h1>
         <p data-i18n="openingHall"></p>
       </section>
 
       <section class="screen rest" id="rest" hidden>
         <p data-i18n="restingTitle"></p>
-        <button class="chip" id="btn-resume" data-i18n="continueHere"></button>
+        <button class="ghost" id="btn-resume" data-i18n="continueHere"></button>
       </section>
 
       <section class="screen exit" id="exit-screen" hidden>
         <p class="eyebrow" id="exit-name"></p>
         <h1 data-i18n="exitTitle"></h1>
         <p data-i18n="exitBody"></p>
-        <button class="chip" id="btn-stay" data-i18n="stayAgain"></button>
+        <button class="ghost" id="btn-stay" data-i18n="stayAgain"></button>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
