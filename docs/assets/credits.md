@@ -37,6 +37,14 @@ licenses, source pages and the edits made are listed in
 ships with the site and is linked from the settings sheet. The synthesized voices in
 `src/audio.ts` remain the fallback.
 
+## Chant recordings
+
+- **Bodh Gaya's chant** (`public/audio/bodhgaya/daily-chanting-mahabodhi.mp3`) is the
+  audio of ["Daily Chanting at Bodhgaya Mahabodhi Temple"](https://www.youtube.com/watch?v=NlZQVNnJneI)
+  by the BodhGaya Events channel on YouTube (YouTube standard license), extracted and
+  loudness-normalised. It plays on "Listen to chanting" and at the dawn and evening
+  services in the Bodh Gaya room.
+
 ## The Bodhi leaf
 
 The Bodhi tree's leaves (canopy and falling leaves) use the outline and image of

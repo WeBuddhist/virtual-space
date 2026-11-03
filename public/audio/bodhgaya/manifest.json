@@ -1,8 +1,19 @@
 {
   "version": 1,
   "ambient": [],
-  "chants": [],
+  "chants": [
+    {
+      "src": "daily-chanting-mahabodhi.mp3",
+      "title": {
+        "en": "Daily chanting at the Mahabodhi Temple",
+        "bo": "བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་གི་ཉིན་རེའི་ཁ་འདོན།"
+      },
+      "credit": "BodhGaya Events (YouTube)",
+      "license": "YouTube standard license",
+      "volume": 0.8
+    }
+  ],
   "music": [],
   "instruments": {},
-  "services": { "dawn": null, "evening": null }
+  "services": { "dawn": "daily-chanting-mahabodhi.mp3", "evening": "daily-chanting-mahabodhi.mp3" }
 }
