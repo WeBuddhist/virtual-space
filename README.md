@@ -1,4 +1,4 @@
-# Ritrö · རི་ཁྲོད། — a virtual Tibetan temple
+# WeBuddhist Space · virtual temples in English and Tibetan
 
 A quiet, multiplayer 3D temple in the browser, in English and Tibetan.
 Phase 1 (this MVP) is a clean-room reconstruction of the interaction model of
