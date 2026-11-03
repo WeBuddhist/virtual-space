@@ -6,16 +6,17 @@ import { VAJRASANA } from '../bodhi';
 import { TEMPLE } from '../tower';
 import { mat } from './kit';
 
-// The Kimi-written Bodh Gaya (scripts/temple/kimi.ts), shown with ?site=kimi: each
-// element's module builds it in its own frame (front +z, origin at the base centre);
-// here it is placed into the site, merged per material, textured, and the hand-made
-// pieces it replaces (tagged userData.kimi) are hidden. Colliders, seats, offerings and
-// the sanctum stay the hand-made site's.
+// The Kimi-written Bodh Gaya (scripts/temple/kimi.ts), the site's architecture since
+// the user adopted it: each element's module builds it in its own frame (front +z,
+// origin at the base centre); here it is placed into the site, merged per material and
+// textured. The hand-made pieces it replaces (tagged userData.kimi) show while the
+// modules load, then are removed; ?site=hand keeps them instead, for comparison.
+// Colliders, seats, offerings and the sanctum stay the hand-made site's.
 
 type Module = { build: (...a: unknown[]) => THREE.Object3D; TYPES?: number };
 const modules = import.meta.glob<Module>(['./*.ts', '!./kit.ts', '!./index.ts']);
 
-export const kimiRequested = () => new URLSearchParams(location.search).get('site') === 'kimi';
+export const useKimi = () => new URLSearchParams(location.search).get('site') !== 'hand';
 
 const TEX = '/textures/bodhgaya/';
 let textured = false;
@@ -93,10 +94,18 @@ function place(obj: THREE.Object3D, at: THREE.Vector3, yaw: number) {
 
 const EAST = Math.PI / 2;
 
-/** build each available element into `parents` (by part) and hide what it replaces */
+/** build each available element into `parents` (by part) and remove what it replaces */
 export async function loadKimi(parents: Record<string, THREE.Object3D>, stupaSpots: [number, number, number][]) {
   texture();
-  const hide = (part: string) => Object.values(parents).forEach((p) => p.traverse((o) => { if (o.userData.kimi === part) o.visible = false; }));
+  const hide = (part: string) => {
+    const gone: THREE.Object3D[] = [];
+    Object.values(parents).forEach((p) => p.traverse((o) => { if (o.userData.kimi === part) gone.push(o); }));
+    for (const o of gone) {
+      o.removeFromParent();
+      // geometry is the piece's own; materials can be shared with what stays, so they stay
+      o.traverse((c) => (c as THREE.Mesh).geometry?.dispose());
+    }
+  };
   const loaded: string[] = [];
   for (const [path, load] of Object.entries(modules)) {
     const id = path.slice(2, -3);

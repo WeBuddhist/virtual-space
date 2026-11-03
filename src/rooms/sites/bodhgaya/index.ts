@@ -4,7 +4,7 @@ import { buildBodhi, TREE, VAJRASANA } from './bodhi';
 import { BOUNDS, BURNER_AT, buildGrounds } from './grounds';
 import { buildPilgrims } from './pilgrims';
 import { buildShrine, IMAGE_FACE, LEDGE } from './shrine';
-import { kimiRequested, loadKimi } from './kimi';
+import { loadKimi, useKimi } from './kimi';
 import { buildTower, SANCTUM, TOWER_COLLIDERS } from './tower';
 
 // Mahabodhi Temple, Bodh Gaya (see docs/rooms/bodhgaya/reference.md).
@@ -16,8 +16,8 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
   const bodhi = buildBodhi(rng);
   const grounds = buildGrounds(rng);
   scene.add(tower.group, shrine.group, bodhi.group, grounds.group);
-  // ?site=kimi: the architecture as written by Kimi K3.1 Pro, for comparison
-  if (kimiRequested()) loadKimi({ tower: tower.group, grounds: grounds.group, bodhi: bodhi.group }, grounds.stupaSpots).then((ids) => console.info('kimi site:', ids.join(', ') || 'no elements yet'));
+  // the architecture as written by Kimi K3.1 Pro (?site=hand: the earlier hand-made one)
+  if (useKimi()) loadKimi({ tower: tower.group, grounds: grounds.group, bodhi: bodhi.group }, grounds.stupaSpots).then((ids) => console.info('kimi site:', ids.join(', ') || 'no elements yet'));
   const pilgrims = buildPilgrims(scene, rng);
 
   const colliders: Box2[] = [...TOWER_COLLIDERS, shrine.collider, ...bodhi.colliders, ...grounds.colliders];

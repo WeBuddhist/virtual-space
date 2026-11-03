@@ -14,8 +14,8 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
   bodhgaya: {
     id: 'bodhgaya',
     tradition: 'pan',
-    name: { en: 'Bodh Gaya', bo: 'རྡོ་རྗེ་གདན།' },
-    place: { en: 'Mahabodhi Temple, Bihar, India', bo: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་། རྒྱ་གར།' },
+    name: { en: 'Mahabodhi Temple', bo: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་།' },
+    place: { en: 'Bodh Gaya, Bihar, India', bo: 'རྡོ་རྗེ་གདན། རྒྱ་གར།' },
     hall: {
       name: { en: 'Mahabodhi Temple', bo: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་།' },
       signboard: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་',
