@@ -100,7 +100,8 @@ export class Player {
           this.lookPitch = THREE.MathUtils.clamp(this.lookPitch + dy * 0.003, -1.35, 1.35);
         } else {
           this.camYaw -= dx * 0.006;
-          this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.004, 0.05, 1.2);
+          // below level the camera stops sinking and tilts up instead, to the sky
+          this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.004, -1.2, 1.2);
         }
       }
     });
@@ -243,14 +244,24 @@ export class Player {
     const p = this.position;
     const look = new THREE.Vector3(p.x, p.y + 0.9, p.z);
     if (this.focus) look.y += (this.focus.y - look.y) * 0.6;
+    // the orbit itself never goes below just under head height; past that, dragging
+    // further tilts the view upward over the avatar, toward towers, trees and sky
+    const orbit = Math.max(this.camPitch, -0.12);
     const off = new THREE.Vector3(
-      Math.sin(this.camYaw) * Math.cos(this.camPitch),
-      Math.sin(this.camPitch),
-      Math.cos(this.camYaw) * Math.cos(this.camPitch),
+      Math.sin(this.camYaw) * Math.cos(orbit),
+      Math.sin(orbit),
+      Math.cos(this.camYaw) * Math.cos(orbit),
     ).multiplyScalar(this.camDist);
     const want = look.clone().add(off);
     want.y = Math.max(want.y, 0.3);
     this.camera.position.lerp(want, 1 - Math.exp(-dt * 10));
+    const tilt = orbit - this.camPitch; // how far to look up past the avatar
+    if (tilt > 0) {
+      // continue smoothly from the angle at which the camera sees the head
+      const flat = Math.hypot(look.x - this.camera.position.x, look.z - this.camera.position.z);
+      const base = Math.atan2(look.y - this.camera.position.y, flat);
+      look.y = this.camera.position.y + flat * Math.tan(Math.min(base + tilt, 1.35));
+    }
     this.camera.lookAt(look);
   }
 }
