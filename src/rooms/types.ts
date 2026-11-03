@@ -26,7 +26,26 @@ export interface StatueDef {
 
 export interface Box2 { x0: number; x1: number; z0: number; z1: number }
 /** a seat; `yaw` is the direction a seated visitor faces (avatar forward is +z) */
-export interface Cushion { index: number; position: THREE.Vector3; mesh: THREE.Mesh; yaw?: number }
+export interface Cushion {
+  index: number; position: THREE.Vector3; mesh: THREE.Mesh; yaw?: number;
+  /** what someone sitting here looks at, such as the main image's face */
+  focus?: THREE.Vector3;
+}
+
+/** a place to make offerings: where to stand, where flowers fall, where incense goes */
+export interface OfferingSpot {
+  /** where the visitor stands to offer, and the world yaw they face */
+  stand: THREE.Vector3;
+  yaw: number;
+  /** centre and radius of a flower shower, kept within `area` if given (e.g. not behind glass) */
+  shower: THREE.Vector3;
+  radius: number;
+  area?: { x0: number; x1: number; z0: number; z1: number };
+  /** raised surfaces flowers come to rest on (tables, thrones) */
+  ledges?: { x0: number; x1: number; z0: number; z1: number; y: number }[];
+  /** top of an incense holder's sand; the holder is built there */
+  holder?: THREE.Vector3;
+}
 
 /** a resident practitioner who stays on one seat */
 export interface Resident { seat: number; robe?: number; shirt?: number; pose?: 'kneel' | 'bow' | 'beads' }
@@ -45,6 +64,8 @@ export interface Site {
   groundHeight(x: number, z: number): number;
   /** solid buildings that hide name tags behind them */
   occluders?: THREE.Object3D[];
+  /** shrines where visitors offer flowers and incense */
+  shrines?: OfferingSpot[];
   /** night is 0 by day and 1 at night; drive lamps, flags, water… */
   update(dt: number, night: number, elapsed: number): void;
 }

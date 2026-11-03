@@ -12,12 +12,22 @@ export interface PlayerEvents {
   onMoveStart(): void;
 }
 
-/** third-person controller: the camera orbits behind the avatar */
+/**
+ * Third-person controller: the camera orbits behind the avatar. Zooming all the way in
+ * (or `setEyes(true)`) switches to the avatar's own eyes, where dragging turns the gaze
+ * a full 360° and up and down, as if turning your head.
+ */
 export class Player {
   yaw = Math.PI;            // avatar facing (+z local) → world yaw; PI faces the hall
-  camYaw = 0;               // camera orbit angle around the avatar
+  camYaw = 0;               // camera orbit angle around the avatar; in eyes view, the gaze is the opposite way
   camPitch = 0.32;
   camDist = 3.6;
+  eyes = false;
+  /** gaze pitch in eyes view: positive looks up */
+  lookPitch = 0;
+  onEyes: (on: boolean) => void = () => {};
+  /** while seated: what the visitor faces; the orbit camera raises its aim toward it */
+  focus: THREE.Vector3 | null = null;
   target: THREE.Vector3 | null = null;
   private keys = new Set<string>();
   private marker: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
@@ -84,8 +94,14 @@ export class Player {
       }
       this.dragDist += Math.abs(dx) + Math.abs(dy);
       if (this.dragDist > 4) {
-        this.camYaw -= dx * 0.006;
-        this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.004, 0.05, 1.2);
+        if (this.eyes) {
+          // drag the world: dragging left turns the gaze right, dragging down looks up
+          this.camYaw += dx * 0.0032;
+          this.lookPitch = THREE.MathUtils.clamp(this.lookPitch + dy * 0.003, -1.35, 1.35);
+        } else {
+          this.camYaw -= dx * 0.006;
+          this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.004, 0.05, 1.2);
+        }
       }
     });
     const up = (e: PointerEvent) => {
@@ -110,7 +126,22 @@ export class Player {
   }
 
   private zoom(delta: number) {
+    // zooming in past the closest orbit steps into the avatar's eyes; zooming out steps back
+    if (this.eyes) {
+      if (delta > 0.02) this.setEyes(false);
+      return;
+    }
+    if (delta < 0 && this.camDist <= 1.6 + 1e-3) return this.setEyes(true);
     this.camDist = THREE.MathUtils.clamp(this.camDist + delta * this.camDist, 1.6, 9);
+  }
+
+  setEyes(on: boolean) {
+    if (on === this.eyes) return;
+    this.eyes = on;
+    this.lookPitch = on ? -this.camPitch * 0.4 : 0;
+    this.avatar.root.visible = !on;
+    if (!on) this.camDist = 1.8;
+    this.onEyes(on);
   }
 
   private pick(e: PointerEvent) {
@@ -172,6 +203,7 @@ export class Player {
       const diff = Math.atan2(Math.sin(want - this.yaw), Math.cos(want - this.yaw));
       this.yaw += diff * Math.min(1, dt * 12);
       walking = true;
+      this.focus = null;
       if (this.target && this.blocked(pos.x + move.x * 0.05, pos.z + move.z * 0.05, this.world.colliders) && this.stuck(pos)) this.stop();
     }
     pos.y += (this.world.groundHeight(pos.x, pos.z) - pos.y) * Math.min(1, dt * 14);
@@ -195,9 +227,22 @@ export class Player {
     this.updateCamera(Infinity);
   }
 
+  private eyePos = new THREE.Vector3();
+  private gaze = new THREE.Vector3();
   private updateCamera(dt: number) {
+    if (this.eyes) {
+      // the camera rides the head bone, smoothed so bows and steps don't jolt the view
+      this.avatar.root.updateMatrixWorld(true);
+      this.avatar.eyes(this.eyePos);
+      this.camera.position.lerp(this.eyePos, 1 - Math.exp(-dt * 12));
+      const c = Math.cos(this.lookPitch);
+      this.gaze.set(-Math.sin(this.camYaw) * c, Math.sin(this.lookPitch), -Math.cos(this.camYaw) * c).add(this.camera.position);
+      this.camera.lookAt(this.gaze);
+      return;
+    }
     const p = this.position;
     const look = new THREE.Vector3(p.x, p.y + 0.9, p.z);
+    if (this.focus) look.y += (this.focus.y - look.y) * 0.6;
     const off = new THREE.Vector3(
       Math.sin(this.camYaw) * Math.cos(this.camPitch),
       Math.sin(this.camPitch),

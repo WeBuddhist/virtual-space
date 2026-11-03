@@ -3,6 +3,7 @@
 // Mirrors the observed sansatemple behaviour: 100 rooms, 100 visitors each,
 // seat reservations, and practice events relayed to everyone in the room.
 import { DurableObject } from 'cloudflare:workers';
+import { isFlower } from '../shared/offerings';
 import { ALL_ROOM_IDS, ROOM_CAPACITY as CAPACITY, SEATING, parseRoom } from '../shared/rooms';
 
 interface Env {
@@ -14,7 +15,11 @@ interface Env {
 const NAME_COUNT = 24;
 const COLORS = ['#bdc5ad', '#cbbdab', '#b9c8c2', '#c8bd9c', '#c9b3b8', '#b4bfd0', '#d1c3a3', '#b8c9b0'];
 const POSES = new Set(['walk', 'kneel', 'beads', 'idle']);
-const ACTS = new Set(['hello', 'bow', 'stand', 'bead', 'incense']);
+const ACTS = new Set(['hello', 'bow', 'stand', 'bead', 'incense', 'flowers']);
+/** a point in the site, as [x, y, z] metres, or undefined if malformed */
+const point = (p: unknown): [number, number, number] | undefined =>
+  Array.isArray(p) && p.length === 3 && p.every((n) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) < 1000)
+    ? (p.map((n) => Math.round(n * 100) / 100) as [number, number, number]) : undefined;
 const BOW_STYLES = new Set(['tibetan-prostration', 'five-point', 'east-asian-bow', 'standing-bow']);
 const ROOM_IDS = ALL_ROOM_IDS;
 const ROOM_SET = new Set(ROOM_IDS);
@@ -128,7 +133,14 @@ export class Room extends DurableObject<Env> {
         break;
       }
       case 'act':
-        if (ACTS.has(m.act)) this.broadcast({ type: 'act', id: v.id, act: m.act, style: BOW_STYLES.has(m.style) ? m.style : undefined }, ws);
+        if (ACTS.has(m.act)) {
+          this.broadcast({
+            type: 'act', id: v.id, act: m.act,
+            style: BOW_STYLES.has(m.style) ? m.style : undefined,
+            item: isFlower(m.item) ? m.item : undefined,
+            at: point(m.at),
+          }, ws);
+        }
         break;
       case 'seat': {
         const seat = m.seat;

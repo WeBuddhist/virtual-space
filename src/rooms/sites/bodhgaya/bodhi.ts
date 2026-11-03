@@ -118,9 +118,12 @@ export function buildBodhi(rng: () => number) {
   const eave = new THREE.Mesh(new THREE.BoxGeometry(2, 0.18, 3), GOLD_TOP);
   eave.position.set(V.x, 2.45, V.z);
   group.add(roof, eave);
-  const vRail = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, 3.4), brass);
-  vRail.position.set(V.x, 0.95, V.z);
-  group.add(vRail);
+  // an open brass rail round the throne, so offerings on it stay in view
+  for (const [w, d, dx, dz] of [[2.4, 0.05, 0, -1.7], [2.4, 0.05, 0, 1.7], [0.05, 3.4, -1.2, 0], [0.05, 3.4, 1.2, 0]]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, d), brass);
+    bar.position.set(V.x + dx, 0.95, V.z + dz);
+    group.add(bar);
+  }
 
   return {
     group,

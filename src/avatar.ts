@@ -491,6 +491,11 @@ export class Avatar {
     if (this.pose === 'bow') this.play(style, 0.4);
   }
 
+  /** world position between the eyes, for the first-person view */
+  eyes(out = new THREE.Vector3()) {
+    return this.bones.get('head')!.localToWorld(out.set(0, 0.13, 0.1));
+  }
+
   setPose(pose: Pose) {
     if (pose === this.pose) return;
     this.pose = pose;

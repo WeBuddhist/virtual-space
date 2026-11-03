@@ -3,6 +3,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { SparkRenderer } from '@sparkjsdev/spark';
+import { FLOWER_IDS, type FlowerId } from '../shared/offerings';
+import { FLOWERS, flowerCanvas, Offerings } from './offerings';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import './style.css';
 import { applyDom, getLang, onLangChange, pick, setLang, t, type Key } from './i18n';
@@ -67,6 +69,7 @@ const world = buildWorld(renderer, temple);
 const RESIDENTS = temple.residents.map((r, i) => ({ ...r, ...RESIDENT_LOOKS[i % RESIDENT_LOOKS.length] }));
 const BURNER = world.site.burner.position;
 const BURNER_STAND = world.site.burner.stand;
+const offerings = new Offerings(world.scene, world.groundHeight, world.site.shrines ?? []);
 const scene = world.scene;
 // draws Gaussian-splat objects (such as the Bodh Gaya image) within the normal scene render
 scene.add(new SparkRenderer({ renderer }));
@@ -109,7 +112,11 @@ const player = new Player(me, camera, world, renderer.domElement, {
 player.yaw = world.site.spawnYaw;
 player.camYaw = player.yaw + Math.PI;
 player.snapCamera();
-if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera } });
+player.onEyes = (on) => {
+  $('btn-eyes').setAttribute('aria-pressed', String(on));
+};
+$('btn-eyes').addEventListener('click', () => player.setEyes(!player.eyes));
+if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings } });
 
 function leavePractice() {
   if (mode === 'bow') stopBow(false);
@@ -181,6 +188,17 @@ let pendingSeat: Cushion | null = null;
 function sit(c: Cushion) {
   seat = c.index;
   player.yaw = c.yaw ?? Math.PI;
+  // face the image: in the eyes view the gaze rises to its face, otherwise the camera
+  // swings round behind the sitter
+  player.camYaw = player.yaw + Math.PI;
+  player.lookPitch = 0.08;
+  player.focus = c.focus ?? null;
+  if (c.focus) {
+    const eye = c.position.clone().setY(0.55); // kneeling eye height
+    const to = c.focus.clone().sub(eye);
+    player.camYaw = Math.atan2(-to.x, -to.z);
+    player.lookPitch = Math.atan2(to.y, Math.hypot(to.x, to.z));
+  }
   mode = 'kneel';
   me.setPose('kneel');
   updateDock();
@@ -200,6 +218,70 @@ function offerIncense() {
     }, 1200);
   });
 }
+
+// ---- offerings: flowers and incense at the nearest shrine ----------------
+const dlgOffer = $<HTMLDialogElement>('dlg-offer');
+
+function renderOffer() {
+  $('offer-flowers').replaceChildren(...FLOWER_IDS.map((id) => {
+    const b = document.createElement('button');
+    const img = new Image();
+    img.src = flowerCanvas(id, 96).toDataURL();
+    img.alt = '';
+    const text = document.createElement('span');
+    text.innerHTML = '<strong></strong><small></small>';
+    text.querySelector('strong')!.textContent = pick(FLOWERS[id].name);
+    text.querySelector('small')!.textContent = pick(FLOWERS[id].meaning);
+    b.append(img, text);
+    b.addEventListener('click', () => { dlgOffer.close(); offerFlowers(id); });
+    return b;
+  }));
+}
+
+/** walk to the nearest shrine (if there is one in reach), face it, then do `then` */
+function atShrine(then: (spot: ReturnType<Offerings['nearest']>) => void) {
+  leavePractice();
+  const spot = offerings.nearest(me.root.position);
+  if (!spot) return then(null);
+  toast(t('offerWalk'));
+  player.walkTo(spot.stand, () => {
+    player.yaw = spot.yaw;
+    then(spot);
+  });
+}
+
+function offerFlowers(id: FlowerId) {
+  atShrine((spot) => {
+    startPalms();
+    // with no shrine near, the flowers fall just ahead of the visitor
+    const ahead = new THREE.Vector3(Math.sin(player.yaw), 0, Math.cos(player.yaw)).multiplyScalar(1.3).add(me.root.position);
+    const at = spot ? spot.shower.clone() : ahead;
+    setTimeout(() => {
+      offerings.shower(id, at);
+      net?.act('flowers', undefined, { item: id, at: [at.x, at.y, at.z] });
+      audio.play('singing-bowl', 0.35);
+      toast(t('flowersFall'));
+    }, 700);
+  });
+}
+
+function offerShrineIncense() {
+  const spot = offerings.nearest(me.root.position);
+  // without a shrine holder in reach, incense goes to the site's burner as before
+  if (!spot?.holder) return offerIncense();
+  atShrine(() => {
+    startPalms();
+    setTimeout(() => {
+      const at = spot.holder!;
+      offerings.incense(at);
+      net?.act('incense', undefined, { at: [at.x, at.y, at.z] });
+      audio.bowl();
+      toast(t('incenseLit'));
+    }, 1200);
+  });
+}
+
+$('offer-incense').addEventListener('click', () => { dlgOffer.close(); offerShrineIncense(); });
 
 // ---- overlays ------------------------------------------------------------
 const practiceLayer = $('practice-layer');
@@ -260,6 +342,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
     if (p === 'bow') (mode === 'bow' ? stopBow(true) : startBow());
     if (p === 'instrument') (mode === 'instrument' ? closeOverlays() : openInstruments());
     if (p === 'beads') (mode === 'beads' ? closeOverlays() : openBeads());
+    if (p === 'offer') { renderOffer(); dlgOffer.showModal(); }
   });
 });
 
@@ -420,7 +503,8 @@ function onMessage(m: ServerMsg) {
       if (m.act === 'hello') { r.palmsUntil = performance.now() + PALMS_SECONDS * 1000; r.bowing = false; bubble(m.id, '🙏'); }
       if (m.act === 'bow') { r.bowing = true; if (m.style) r.avatar.setBowStyle(m.style); }
       if (m.act === 'stand') r.bowing = false;
-      if (m.act === 'incense') world.addIncense();
+      if (m.act === 'incense') (m.at ? offerings.incense(new THREE.Vector3(...m.at)) : world.addIncense());
+      if (m.act === 'flowers' && m.item && m.at) offerings.shower(m.item, new THREE.Vector3(...m.at));
       if (m.act === 'bead') bubble(m.id, '📿');
       break;
     }
@@ -533,6 +617,7 @@ function renderLang() {
   mala.renderCount();
   instruments.render();
   renderBowStyles();
+  if (dlgOffer.open) renderOffer();
   updateDock();
   renderSound();
 }
@@ -680,6 +765,8 @@ function occluded(id: string, head: THREE.Vector3, dist: number) {
 function placeTag(id: string, avatar: Avatar) {
   const el = tags.get(id);
   if (!el) return;
+  // no tag floating in front of your own eyes
+  if (id === selfTagId && player.eyes) { el.style.display = 'none'; return; }
   avatar.headTop(tmp);
   const dist = tmp.distanceTo(camera.position);
   const blocked = dist < 28 && occluded(id, tmp.clone(), dist);
@@ -734,6 +821,7 @@ function frame() {
 
   $('btn-incense').hidden = mode === 'bow' || me.root.position.distanceTo(BURNER) > 3.6;
   world.update(dt, new Date());
+  offerings.update(dt);
   bloom.strength = 0.06 + (1 - world.daylight) * 0.32;
   composer.render();
   if (first) {

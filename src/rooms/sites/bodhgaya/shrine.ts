@@ -10,7 +10,13 @@ import { SANCTUM } from './tower';
 
 const BACK = SANCTUM.x0 + 0.12; // the backdrop panel
 const FRONT = SANCTUM.x0 + 2.05; // the glass
+/** top of the offering table in front of the glass */
+export const LEDGE_TOP = 0.42;
+/** the offering table's footprint, where flower offerings come to rest */
+export const LEDGE = { x0: FRONT + 0.025, x1: FRONT + 0.575, z0: -2.75, z1: 2.75, y: LEDGE_TOP };
 const PLINTH_TOP = 1.05;
+/** where seated visitors look: the image's chest, so its face and whole figure frame together */
+export const IMAGE_FACE = new THREE.Vector3(BACK + 0.95, PLINTH_TOP + 1.0, 0);
 /** the statue's seated height (about 1.9 m) over our 1.15 m sculpt */
 const STATUE_SCALE = 1.65;
 
@@ -303,35 +309,42 @@ export function buildShrine(rng: () => number) {
   statueSlot.scale.setScalar(STATUE_SCALE);
   group.add(statueSlot);
   // a Gaussian splat of the real image, made by an image-to-3D model from sanctum photos
-  // (scripts/statues/splat_clean.py, spz.ts). It carries its own glitter halo, so the
-  // drawn one goes; the sculpted statue is the fallback if the splat fails to load.
+  // (scripts/statues/splat_clean.py, spz.ts). The sculpted statue and drawn halo stand in
+  // while it streams and decodes (several seconds), then give way; the splat carries
+  // its own glitter halo.
+  let sculpt: THREE.Object3D | null = null;
+  let splatReady = false;
+  loadStatue('bodhgaya', 'tibetan-painted').then((s) => { if (!splatReady) statueSlot.add((sculpt = s)); }).catch(() => {});
   const splat = new SplatMesh({ url: '/models/statues/bodhgaya.spz' });
   // the splat's base sits where the sculpt's does, nudged forward so the back of its
   // halo clears the blue backdrop; a little larger so it fills the case as in photos
   splat.position.set(0, -0.12, 0.16);
   splat.scale.setScalar(1.15);
   splat.initialized.then(() => {
+    splatReady = true;
+    if (sculpt) statueSlot.remove(sculpt);
     statueSlot.add(splat);
     h.visible = false;
-  }).catch(() => loadStatue('bodhgaya', 'tibetan-painted').then((s) => statueSlot.add(s)).catch(() => {}));
+  }).catch(() => {});
 
   // glass front and the offering ledge with flowers. Plain alpha glass, not transmission:
   // transmission samples an opaque-only pass, which would hide the splat image behind it
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0 - 0.2, top - 0.6), new THREE.MeshPhysicalMaterial({
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0 - 0.2, top - LEDGE_TOP), new THREE.MeshPhysicalMaterial({
     color: 0xdfe8ff, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.035, depthWrite: false,
   }));
-  glass.position.set(FRONT, (top - 0.6) / 2 + 0.6, 0);
+  glass.position.set(FRONT, (top - LEDGE_TOP) / 2 + LEDGE_TOP, 0);
   glass.rotation.y = Math.PI / 2;
   group.add(glass);
-  const ledge = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.85, z1 - z0 + 0.6), new THREE.MeshStandardMaterial({ color: 0xece6da, roughness: 0.4 }));
-  ledge.position.set(FRONT + 0.3, 0.42, 0);
+  // a low offering table, so pilgrims kneeling on the cushions see the whole image over it
+  const ledge = new THREE.Mesh(new THREE.BoxGeometry(0.55, LEDGE_TOP, z1 - z0 + 0.6), new THREE.MeshStandardMaterial({ color: 0xece6da, roughness: 0.4 }));
+  ledge.position.set(FRONT + 0.3, LEDGE_TOP / 2, 0);
   group.add(ledge);
-  const f1 = flowers(rng, 420, new THREE.Vector3(0.45, 0.12, z1 - z0 + 0.4));
-  f1.position.set(FRONT + 0.3, 0.88, 0);
+  const f1 = flowers(rng, 420, new THREE.Vector3(0.45, 0.08, z1 - z0 + 0.4));
+  f1.position.set(FRONT + 0.3, LEDGE_TOP + 0.03, 0);
   group.add(f1);
   for (const z of [-2.7, 2.7]) {
     const vase = flowers(rng, 90, new THREE.Vector3(0.4, 0.9, 0.4));
-    vase.position.set(FRONT + 0.25, 0.9, z);
+    vase.position.set(FRONT + 0.25, LEDGE_TOP + 0.05, z);
     group.add(vase);
   }
 
