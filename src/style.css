@@ -48,7 +48,6 @@ html[lang='bo'] .tag { font-size: 13px; }
 .tag i { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 9px; color: var(--bg); background: var(--dot, #bdc5ad); }
 .tag.me { background: color-mix(in srgb, var(--chant) 88%, transparent); color: var(--bg); }
 .tag.me i { background: var(--bg); color: var(--chant); }
-.tag.speaking { box-shadow: 0 0 0 2px var(--accent), 0 0 14px 2px color-mix(in srgb, var(--accent) 55%, transparent); }
 .tag .bubble { position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); font-size: 16px; animation: float 2s ease-out forwards; }
 @keyframes float { from { opacity: 0; transform: translate(-50%, 6px); } 20% { opacity: 1; } to { opacity: 0; transform: translate(-50%, -18px); } }
 
@@ -78,9 +77,6 @@ html[lang='bo'] .titles b { font-weight: 400; }
 #btn-sound.on { color: var(--chant); }
 #btn-sound.on .sound-wave { display: inline; }
 #btn-sound.on .sound-x { display: none; }
-.ic.mic .mic-x { display: none; }
-.ic.mic:not(.on) .mic-x { display: block; }
-.ic.mic.on { background: var(--live); color: #fff; }
 .ic.eyes[aria-pressed='true'] { background: var(--lens); color: var(--chant); }
 
 /* ---------- quiet pills under the bar ---------- */
