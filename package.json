@@ -10,7 +10,8 @@
     "deploy": "npm run build && wrangler deploy",
     "preview": "npm run build && wrangler dev",
     "studio": "vite --open /__studio",
-    "statues": "node --experimental-strip-types --no-warnings scripts/statues/build.ts"
+    "statues": "node --experimental-strip-types --no-warnings scripts/statues/build.ts",
+    "mocap": "node --experimental-strip-types --no-warnings scripts/mocap/build.ts"
   },
   "dependencies": {
     "three": "^0.180.0"

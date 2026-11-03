@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type { Avatar } from './avatar';
 import type { Box2, Cushion, World } from './world';
 
-const SPEED = 2.4;
+// matched to the captured walk cycle so the feet do not slide
+const SPEED = 1.5;
 const RADIUS = 0.22;
 
 export interface PlayerEvents {

@@ -12,14 +12,14 @@ export type Pose = 'idle' | 'walk' | 'kneel' | 'beads' | 'palms' | 'bow';
 export interface Look { robe: number; shirt: number; skin: number }
 export const DEFAULT_LOOK: Look = { robe: 0x7a1f22, shirt: 0xd9a12b, skin: 0xd8a47c };
 
-type BoneName =
+export type BoneName =
   | 'hips' | 'spine' | 'chest' | 'neck' | 'head'
   | 'shoulderL' | 'upperArmL' | 'foreArmL' | 'handL'
   | 'shoulderR' | 'upperArmR' | 'foreArmR' | 'handR'
   | 'thighL' | 'shinL' | 'footL' | 'thighR' | 'shinR' | 'footR';
 
 // bind pose: offsets from the parent bone, metres
-const RIG: [BoneName, BoneName | null, [number, number, number]][] = [
+export const RIG: [BoneName, BoneName | null, [number, number, number]][] = [
   ['hips', null, [0, 0.46, 0]],
   ['spine', 'hips', [0, 0.06, 0]],
   ['chest', 'spine', [0, 0.13, 0]],
@@ -40,7 +40,7 @@ const RIG: [BoneName, BoneName | null, [number, number, number]][] = [
   ['shinR', 'thighR', [0, -0.21, 0]],
   ['footR', 'shinR', [0, -0.2, 0]],
 ];
-const TIP: Partial<Record<BoneName, [number, number, number]>> = {
+export const TIP: Partial<Record<BoneName, [number, number, number]>> = {
   head: [0, 0.3, 0], handL: [0, -0.09, 0], handR: [0, -0.09, 0], footL: [0, -0.02, 0.1], footR: [0, -0.02, 0.1],
 };
 
@@ -400,6 +400,20 @@ function bodyPieces(seg: Map<BoneName, [THREE.Vector3, THREE.Vector3]>): Piece[]
 
 let geometryCache: Map<string, THREE.BufferGeometry> | null = null;
 
+// Motion-captured clips (CC0, Mesh2Motion) retargeted to this rig by scripts/mocap/build.ts.
+// They replace the hand-made idle, walk and sitting clips once loaded; the bows stay ours.
+const MOCAP_FOR: Partial<Record<string, string>> = { idle: 'idle', walk: 'walkFormal', kneel: 'meditate' };
+let mocap: Promise<Map<string, THREE.AnimationClip>> | null = null;
+function loadMocap() {
+  return (mocap ??= fetch('/animations/mocap.json')
+    .then((r) => (r.ok ? r.json() : { clips: [] }))
+    .then((j: { clips: THREE.AnimationClipJSON[] }) => new Map(j.clips.map((c) => {
+      const clip = THREE.AnimationClip.parse(c);
+      return [clip.name, clip] as [string, THREE.AnimationClip];
+    })))
+    .catch(() => new Map()));
+}
+
 export class Avatar {
   readonly root = new THREE.Group();
   private bones: Map<BoneName, THREE.Bone>;
@@ -449,6 +463,24 @@ export class Avatar {
       this.actions.set(name, a);
     }
     this.play('idle', 0);
+    loadMocap().then((found) => this.useMocap(found));
+  }
+
+  /** swap in motion-captured clips for the poses that have them */
+  private useMocap(found: Map<string, THREE.AnimationClip>) {
+    for (const [pose, name] of Object.entries(MOCAP_FOR)) {
+      const clip = found.get(name!);
+      if (!clip) continue;
+      const old = this.actions.get(pose)!;
+      const next = this.mixer.clipAction(clip);
+      this.actions.set(pose, next);
+      // if the old clip is playing, hand over to the captured one smoothly
+      if (this.current === old) {
+        next.reset().play();
+        next.crossFadeFrom(old, 0.4, false);
+        this.current = next;
+      }
+    }
   }
 
   get currentPose() { return this.pose; }
@@ -482,7 +514,7 @@ export class Avatar {
   update(dt: number) {
     this.time += dt;
     const walk = this.actions.get('walk')!;
-    walk.timeScale = 0.85 + this.speed * 0.4;
+    walk.timeScale = 1.8 * Math.max(0.5, this.speed);
     this.mixer.update(dt);
     // procedural layer on top of the clip: breathing, and an idle glance toward a point
     const chest = this.bones.get('chest')!;
