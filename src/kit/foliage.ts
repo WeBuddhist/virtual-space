@@ -1,20 +1,44 @@
 import * as THREE from 'three';
+import { PEEPAL_MAX, PEEPAL_MIN, PEEPAL_OUTLINE } from './peepal-leaf';
 
 // Leafy canopies: thousands of real leaf shapes in one InstancedMesh that sways in
 // the wind (vertex shader), plus fluted, buttressed trunks and drifting fallen leaves.
 
 export type LeafKind = 'peepal' | 'mango';
 
-/** a leaf blade lying in its local XY plane, stem at the origin */
-export function leafGeometry(kind: LeafKind, size = 1) {
+/** the photograph the Bodhi leaf outline was traced from, mapped onto it (see peepal-leaf.ts) */
+let peepalMap: THREE.Texture | undefined;
+export function peepalTexture() {
+  if (!peepalMap) {
+    peepalMap = new THREE.TextureLoader().load('/textures/bodhgaya/bodhi-leaf.jpg');
+    peepalMap.colorSpace = THREE.SRGBColorSpace;
+    peepalMap.anisotropy = 4;
+  }
+  return peepalMap;
+}
+
+/**
+ * A leaf blade lying in its local XY plane, stem at the origin, 0.42 × size long.
+ * `points` thins the traced Bodhi outline for leaves seen only from afar (canopies).
+ */
+export function leafGeometry(kind: LeafKind, size = 1, points = Infinity) {
   const s = new THREE.Shape();
   if (kind === 'peepal') {
-    // heart-shaped, with the long drip tip of Ficus religiosa
-    s.moveTo(0, 0);
-    s.bezierCurveTo(0.12, 0.02, 0.16, 0.16, 0.06, 0.26);
-    s.quadraticCurveTo(0.02, 0.3, 0, 0.42);
-    s.quadraticCurveTo(-0.02, 0.3, -0.06, 0.26);
-    s.bezierCurveTo(-0.16, 0.16, -0.12, 0.02, 0, 0);
+    // the real outline of a Ficus religiosa leaf: cordate base, wavy shoulders, long drip tip
+    const all: [number, number][] = [];
+    for (let i = 0; i < PEEPAL_OUTLINE.length; i += 2) all.push([PEEPAL_OUTLINE[i], PEEPAL_OUTLINE[i + 1]]);
+    const tip = all.reduce((t, p, i) => (p[1] > all[t][1] ? i : t), 0);
+    const step = Math.max(1, Math.round(all.length / Math.min(points, all.length)));
+    const kept = all.filter((_, i) => i === 0 || i === tip || i % step === 0);
+    kept.forEach(([x, y], i) => (i ? s.lineTo(x, y) : s.moveTo(x, y)));
+    const g = new THREE.ShapeGeometry(s);
+    // uv over the outline's bounding box, where the photo was warped to
+    const pos = g.attributes.position, uv = g.attributes.uv;
+    for (let i = 0; i < pos.count; i++) {
+      uv.setXY(i, (pos.getX(i) - PEEPAL_MIN[0]) / (PEEPAL_MAX[0] - PEEPAL_MIN[0]), (pos.getY(i) - PEEPAL_MIN[1]) / (PEEPAL_MAX[1] - PEEPAL_MIN[1]));
+    }
+    g.scale(size, size, size);
+    return g;
   } else {
     // long, narrow, pointed mango leaf
     s.moveTo(0, 0);
@@ -37,8 +61,9 @@ export interface Cluster { center: THREE.Vector3; radius: number; count: number 
  */
 export function canopy(clusters: Cluster[], kind: LeafKind, rng: () => number, opts: { size?: number; sun?: number; shade?: number; flatten?: number } = {}) {
   const total = clusters.reduce((n, c) => n + c.count, 0);
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, side: THREE.DoubleSide });
-  const mesh = new THREE.InstancedMesh(leafGeometry(kind, opts.size ?? 1.5), mat, total);
+  // Bodhi leaves carry the photographed leaf (veins and all); sun/shade then tint it
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, side: THREE.DoubleSide, map: kind === 'peepal' ? peepalTexture() : null });
+  const mesh = new THREE.InstancedMesh(leafGeometry(kind, opts.size ?? 1.5, 14), mat, total);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   const sun = new THREE.Color(opts.sun ?? 0x5a8a32), shade = new THREE.Color(opts.shade ?? 0x2c4a1c);
   let minY = Infinity, maxY = -Infinity;
@@ -110,12 +135,18 @@ export function limb(a: THREE.Vector3, b: THREE.Vector3, ra: number, rb: number,
   return m;
 }
 
-/** leaves drifting down from a canopy and fading out on the ground */
-export function fallingLeaves(kind: LeafKind, area: { center: THREE.Vector3; radius: number; top: number }, count: number, rng: () => number) {
-  const mat = new THREE.MeshStandardMaterial({ color: 0x8a9a3c, roughness: 0.8, side: THREE.DoubleSide });
-  const geo = leafGeometry(kind, 1.2);
-  const leaves = Array.from({ length: count }, () => {
-    const m = new THREE.Mesh(geo, mat);
+/**
+ * Leaves drifting down from a canopy and fading out on the ground. Bodhi leaves fall at
+ * their true size (`size` 0.43: about 18 cm with the tip), some green, some yellowing.
+ */
+export function fallingLeaves(kind: LeafKind, area: { center: THREE.Vector3; radius: number; top: number }, count: number, rng: () => number, size = 1.2) {
+  const map = kind === 'peepal' ? peepalTexture() : null;
+  const mats = map
+    ? [0xffffff, 0xf2e3a0, 0xe8c870].map((color) => new THREE.MeshStandardMaterial({ color, map, roughness: 0.75, side: THREE.DoubleSide }))
+    : [new THREE.MeshStandardMaterial({ color: 0x8a9a3c, roughness: 0.8, side: THREE.DoubleSide })];
+  const geo = leafGeometry(kind, size);
+  const leaves = Array.from({ length: count }, (_, i) => {
+    const m = new THREE.Mesh(geo, mats[i % mats.length]);
     m.userData = { t: rng(), sx: rng() * 10, x: (rng() - 0.5) * 2 * area.radius, z: (rng() - 0.5) * 2 * area.radius, life: 7 + rng() * 6 };
     return m;
   });

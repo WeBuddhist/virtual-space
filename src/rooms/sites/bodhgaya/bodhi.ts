@@ -69,14 +69,15 @@ export function buildBodhi(rng: () => number) {
 
   // a dense canopy of heart-shaped leaves with drip tips, trembling in the wind
   const leafCanopy = canopy([
-    ...tips.map((t) => ({ center: t, radius: 2.2 + rng() * 0.9, count: 230 })),
+    ...tips.map((t) => ({ center: t, radius: 2.2 + rng() * 0.9, count: 600 })),
     // inner clusters fill the crown so the limbs read through leaves, not bare
-    ...mids.map((m) => ({ center: m.clone().add(new THREE.Vector3(0, 1.5, 0)), radius: 3, count: 420 })),
-  ], 'peepal', rng, { size: 1.6, sun: 0x5a8a30, shade: 0x2c4a1a, flatten: 0.55 });
+    ...mids.map((m) => ({ center: m.clone().add(new THREE.Vector3(0, 1.5, 0)), radius: 3, count: 1100 })),
+    // leaves at 1.5x life size (0.27 m): life size would need ~14x as many leaves
+  ], 'peepal', rng, { size: 0.65, sun: 0xffffff, shade: 0x7d8c72, flatten: 0.55 });
   const leaves = leafCanopy.mesh;
   const uTime = leafCanopy.uTime;
   // leaves drifting down; pilgrims wait under the tree to catch one
-  const falling = fallingLeaves('peepal', { center: T, radius: 7, top: 12 }, 14, rng);
+  const falling = fallingLeaves('peepal', { center: T, radius: 7, top: 12 }, 18, rng, 0.43);
   group.add(falling.group);
   group.add(leaves);
 

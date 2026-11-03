@@ -36,3 +36,12 @@ licenses, source pages and the edits made are listed in
 [`public/audio/instruments/SOURCES.md`](../../public/audio/instruments/SOURCES.md), which
 ships with the site and is linked from the settings sheet. The synthesized voices in
 `src/audio.ts` remain the fallback.
+
+## The Bodhi leaf
+
+The Bodhi tree's leaves (canopy and falling leaves) use the outline and image of
+["A leaf of pipal"](https://commons.wikimedia.org/wiki/File:A_leaf_of_pipal.jpg) by
+Hari gurung77, CC BY-SA 4.0, traced and warped by `scripts/foliage/bodhi_leaf.py` (the
+drip tip, cropped in the photo, is extended to its usual length).
+`public/textures/bodhgaya/bodhi-leaf.jpg` and `src/kit/peepal-leaf.ts` are adaptations
+under the same license.
