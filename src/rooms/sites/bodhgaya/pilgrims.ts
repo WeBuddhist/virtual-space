@@ -13,7 +13,7 @@ const WHITE: Partial<Look> = { robe: 0xf0ece2, shirt: 0xf6f3ec };
 const SKINS = [0xd8a47c, 0xc68b5e, 0xe8c4a0, 0xa8714a, 0xdcae86];
 
 /** the kora loop: east side southward, then west along the south, north behind the tree, east along the north */
-const LOOP = [
+export const LOOP = [
   new THREE.Vector3(6.5, 0, -9),
   new THREE.Vector3(6.5, 0, 9.8),
   new THREE.Vector3(-19, 0, 9.8),

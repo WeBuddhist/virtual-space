@@ -104,10 +104,21 @@ function renderBowStyles() {
   bowSelect.replaceChildren(...temple.bowStyles.map((s) => new Option(t(s), s, false, s === bowStyle)));
 }
 
+// circumambulation state (the walking itself is below, by the dock)
+const kora = world.site.kora;
+let koraOn = false;
+/** true while the walk is issuing its own steps, so they don't count as the visitor moving */
+let koraStepping = false;
+let koraNext = 0;
+let koraArrivals = 0;
+/** steps taken before reaching the path itself: in through the gate, onto the path */
+let koraLead: THREE.Vector3[] = [];
+
 const player = new Player(me, camera, world, renderer.domElement, {
   onCushion: (c) => requestSeat(c),
   onBurner: () => offerIncense(),
-  onMoveStart: () => leavePractice(),
+  // a walk the visitor starts (click or keys) ends circumambulation; its own steps don't
+  onMoveStart: () => { if (!koraStepping) leavePractice(); },
 });
 player.yaw = world.site.spawnYaw;
 player.camYaw = player.yaw + Math.PI;
@@ -119,6 +130,7 @@ $('btn-eyes').addEventListener('click', () => player.setEyes(!player.eyes));
 if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings, audio } });
 
 function leavePractice() {
+  if (koraOn) stopKora();
   if (mode === 'bow') stopBow(false);
   if (mode === 'beads') closeOverlays();
   if (seat !== null) {
@@ -334,6 +346,58 @@ function closeOverlays() {
   updateDock();
 }
 
+// ---- circumambulation: walking clockwise round the temple, the shrine on the right ----
+function koraStep() {
+  if (!koraOn || !kora) return;
+  const path = kora.path;
+  koraStepping = true;
+  const lead = koraLead.shift();
+  if (lead) {
+    player.walkTo(lead, () => koraStep());
+  } else {
+    player.walkTo(path[koraNext], () => {
+      koraArrivals++;
+      // a round is one full pass of the corners
+      if (koraArrivals % path.length === 0) toast(t('koraRound').replace('{n}', String(koraArrivals / path.length)));
+      koraNext = (koraNext + 1) % path.length;
+      koraStep();
+    });
+  }
+  koraStepping = false;
+}
+
+function startKora() {
+  if (!kora) return;
+  leavePractice();
+  const path = kora.path;
+  // from outside, come in by the gate; then join the path at its nearest point and carry
+  // on clockwise from there, never doubling back
+  koraLead = kora.inside(me.root.position) ? [] : kora.entrance.map((e) => e.clone());
+  const from = koraLead.at(-1) ?? me.root.position;
+  let best = Infinity;
+  const q = new THREE.Vector3(), on = new THREE.Vector3();
+  path.forEach((a, i) => {
+    const b = path[(i + 1) % path.length];
+    const ab = b.clone().sub(a);
+    const t = THREE.MathUtils.clamp(from.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1);
+    q.copy(a).addScaledVector(ab, t);
+    const d = q.distanceToSquared(from);
+    if (d < best) { best = d; on.copy(q); koraNext = (i + 1) % path.length; }
+  });
+  koraLead.push(on);
+  koraArrivals = 0;
+  koraOn = true;
+  toast(t('koraStart'));
+  updateDock();
+  koraStep();
+}
+
+function stopKora() {
+  koraOn = false;
+  player.stop();
+  updateDock();
+}
+
 // ---- dock and keys -------------------------------------------------------
 document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
   b.addEventListener('click', () => {
@@ -343,13 +407,17 @@ document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
     if (p === 'instrument') (mode === 'instrument' ? closeOverlays() : openInstruments());
     if (p === 'beads') (mode === 'beads' ? closeOverlays() : openBeads());
     if (p === 'offer') { renderOffer(); dlgOffer.showModal(); }
+    if (p === 'kora') (koraOn ? stopKora() : startKora());
   });
 });
 
 function updateDock() {
-  const active: Record<string, boolean> = { palms: mode === 'palms', bow: mode === 'bow', instrument: mode === 'instrument', beads: mode === 'beads' };
+  const active: Record<string, boolean> = { palms: mode === 'palms', bow: mode === 'bow', instrument: mode === 'instrument', beads: mode === 'beads', kora: koraOn };
   let lens = -1;
-  document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b, i) => {
+  // circumambulation is offered where the site has a path round its shrine
+  document.querySelector<HTMLElement>('[data-practice=kora]')!.hidden = !kora;
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-practice]')].filter((b) => !b.hidden);
+  tabs.forEach((b, i) => {
     const on = !!active[b.dataset.practice!];
     if (on) lens = i;
     b.classList.toggle('active', on);
@@ -357,7 +425,11 @@ function updateDock() {
   });
   // the tab bar's lens slides under the practice in progress
   const dock = document.querySelector<HTMLElement>('.dock')!;
+  dock.style.setProperty('--tabs', String(tabs.length));
   dock.classList.toggle('lit', lens >= 0);
+  const koraLabel = document.querySelector<HTMLElement>('[data-practice=kora] span')!;
+  koraLabel.dataset.i18n = koraOn ? 'stopKora' : 'kora';
+  koraLabel.textContent = t(koraLabel.dataset.i18n as Key);
   if (lens >= 0) dock.style.setProperty('--ti', String(lens));
   const bowLabel = document.querySelector<HTMLElement>('.bow-label')!;
   bowLabel.dataset.i18n = mode === 'bow' ? 'stopBow' : 'bow';
@@ -557,10 +629,6 @@ function renderSound() {
   soundBtn.dataset.i18nLabel = audio.enabled ? 'soundOff' : 'soundOn';
   soundBtn.setAttribute('aria-label', t(soundBtn.dataset.i18nLabel as Key));
   soundBtn.title = t(soundBtn.dataset.i18nLabel as Key);
-  const chip = $('btn-chant');
-  const svc = activeService(temple, audio.serviceSeconds);
-  chip.classList.toggle('on', audio.chanting);
-  chip.textContent = audio.chanting ? (communal ? t('listeningTogether') : t('stopChant')) : svc ? t(svc.kind === 'dawn' ? 'dawnService' : 'eveningService') : t('listenChant');
   document.querySelectorAll<HTMLInputElement>('[data-bus]').forEach((i) => { i.value = String(audio.levels[i.dataset.bus as Bus]); });
   const sw = $('bg-switch');
   sw.setAttribute('aria-checked', String(audio.background));
@@ -593,22 +661,25 @@ const liveChantOffset = () => {
   return h * 3600 + m * 60 + s;
 };
 let communal = false;
-$('btn-chant').addEventListener('click', async () => {
-  if (audio.chanting) {
-    communal = false;
-    audio.stopChant();
-    return;
-  }
-  if (!audio.enabled) await audio.enable().catch(() => {});
+/**
+ * With sound on, the chant plays: the communal service in its window, otherwise the
+ * day's loop joined wherever it has reached, like tuning in to a live broadcast.
+ */
+function playChant() {
   const svc = activeService(temple, audio.serviceSeconds);
   communal = !!svc;
   audio.startChant(svc?.offset ?? liveChantOffset(), svc ? audio.serviceChantIndex(svc.kind) : audio.chantIndex);
+}
+let soundWasOn = false;
+audio.onChange(() => {
+  const turnedOn = audio.enabled && !soundWasOn;
+  soundWasOn = audio.enabled;
+  if (turnedOn && !audio.chanting) playChant();
 });
-// join or leave the communal service as its window opens and closes
 setInterval(() => {
+  // move between the live loop and the communal service as its window opens and closes
   const svc = activeService(temple, audio.serviceSeconds);
-  if (svc && audio.enabled && !audio.chanting) { communal = true; audio.startChant(svc.offset, audio.serviceChantIndex(svc.kind)); }
-  if (!svc && communal) { communal = false; audio.stopChant(); }
+  if (audio.enabled && (!audio.chanting || !!svc !== communal)) playChant();
   $('orb').classList.toggle('night', !isDay(temple));
   $('orb').setAttribute('aria-label', isDay(temple) ? t('day') : t('night'));
 }, 1000);
@@ -793,6 +864,11 @@ function placeTag(id: string, avatar: Avatar) {
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.1);
   const walking = player.update(dt);
+  // the walk gave up on a point it couldn't reach (something in the way): go on to the next
+  if (koraOn && kora && !player.target) {
+    if (!koraLead.length) koraNext = (koraNext + 1) % kora.path.length;
+    koraStep();
+  }
   if (walking) {
     if (mode === 'palms' || mode === 'kneel') mode = 'free';
     me.setPose('walk');

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import type { Box2, Cushion, OfferingSpot, Site, SiteContext } from '../../types';
 import { buildBodhi, TREE, VAJRASANA } from './bodhi';
-import { BOUNDS, BURNER_AT, buildGrounds } from './grounds';
-import { buildPilgrims } from './pilgrims';
+import { BOUNDS, BURNER_AT, buildGrounds, RAIL } from './grounds';
+import { buildPilgrims, LOOP } from './pilgrims';
 import { buildShrine, IMAGE_FACE, LEDGE } from './shrine';
 import { loadKimi, useKimi } from './kimi';
 import { buildTower, SANCTUM, TOWER_COLLIDERS } from './tower';
@@ -88,6 +88,13 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
     bounds: BOUNDS,
     groundHeight: () => 0,
     occluders: [tower.group],
+    // visitors walk the same pradakshina path as the pilgrims, inside the railing; from
+    // outside they come in through the east gate
+    kora: {
+      path: LOOP.map((p) => p.clone()),
+      inside: (p) => p.x > RAIL.x0 && p.x < RAIL.x1 && p.z > RAIL.z0 && p.z < RAIL.z1,
+      entrance: [new THREE.Vector3(RAIL.x1 + 1.5, 0, 0), new THREE.Vector3(RAIL.x1 - 1.5, 0, 0)],
+    },
     shrines,
     update(dt, night, elapsed) {
       pilgrims.update(dt);

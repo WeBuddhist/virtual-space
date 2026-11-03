@@ -66,6 +66,11 @@ export interface Site {
   occluders?: THREE.Object3D[];
   /** shrines where visitors offer flowers and incense */
   shrines?: OfferingSpot[];
+  /**
+   * Circumambulation: the path round the main shrine, clockwise (the shrine on the right),
+   * whether a point is within its enclosure, and the way in from outside it.
+   */
+  kora?: { path: THREE.Vector3[]; inside(p: THREE.Vector3): boolean; entrance: THREE.Vector3[] };
   /** night is 0 by day and 1 at night; drive lamps, flags, water… */
   update(dt: number, night: number, elapsed: number): void;
 }
