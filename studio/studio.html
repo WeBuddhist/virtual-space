@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audio Studio · WeBuddhist Space</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tibetan:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #f4f1ea; --card: #fffdf8; --ink: #2f2a22; --soft: #7a7266; --line: #e4ddd0;
+      --robe: #7a1f22; --saffron: #d9a12b; --ok: #3f7a4a; --danger: #a33a2a;
+      --font: 'Noto Sans Tibetan', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.5 var(--font); }
+    header.top { position: sticky; top: 0; z-index: 2; background: rgba(244,241,234,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+    .bar { display: flex; align-items: center; gap: 16px; padding: 14px 0 10px; }
+    .logo { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, var(--saffron) 0 30%, var(--robe) 31%); flex: none; }
+    h1 { font-size: 17px; margin: 0; font-weight: 600; }
+    .bar p { margin: 0; color: var(--soft); font-size: 12.5px; }
+    .status { margin-left: auto; font-size: 12.5px; color: var(--soft); white-space: nowrap; }
+    .status.saved { color: var(--ok); }
+    .status.error { color: var(--danger); }
+    nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 10px; }
+    nav.tabs button { border: 1px solid var(--line); background: var(--card); padding: 7px 14px; border-radius: 999px; cursor: pointer; font: inherit; white-space: nowrap; }
+    nav.tabs button[aria-selected='true'] { background: var(--robe); border-color: var(--robe); color: #fff; }
+    nav.tabs small { opacity: .7; margin-left: 6px; }
+    main { padding: 24px 0 80px; display: grid; gap: 18px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 14px; }
+    .card h2 { margin: 0; font-size: 15px; display: flex; align-items: baseline; gap: 10px; }
+    .card h2 small { color: var(--soft); font-weight: 400; font-size: 12.5px; }
+    .rows { display: grid; gap: 8px; margin: 14px 0 10px; }
+    .empty { color: var(--soft); font-size: 13px; padding: 6px 0; }
+    .row { display: grid; grid-template-columns: 36px 1fr 1fr 150px 32px; gap: 8px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
+    .row .meta { grid-column: 2 / 5; display: grid; grid-template-columns: 1fr 160px 140px; gap: 8px; }
+    .row .file { grid-column: 2 / 5; font-size: 12px; color: var(--soft); display: flex; gap: 12px; flex-wrap: wrap; }
+    .row .file label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+    input[type=text], select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: #fff; color: var(--ink); }
+    input[lang=bo] { font-size: 15px; }
+    input[type=range] { width: 100%; accent-color: var(--robe); }
+    .icon { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: #fff; cursor: pointer; display: grid; place-items: center; font-size: 13px; padding: 0; }
+    .icon.play.on { background: var(--robe); color: #fff; border-color: var(--robe); }
+    .icon.del:hover { color: var(--danger); border-color: var(--danger); }
+    .drop { border: 1.5px dashed #cfc5b2; border-radius: 12px; padding: 14px; text-align: center; color: var(--soft); font-size: 13px; cursor: pointer; transition: background .15s, border-color .15s; }
+    .drop:hover, .drop.over { background: #f7efe0; border-color: var(--saffron); color: var(--ink); }
+    .inst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; }
+    .slot { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+    .slot strong { font-weight: 600; }
+    .slot .src { font-size: 12px; color: var(--soft); min-height: 18px; word-break: break-all; }
+    .slot .acts { display: flex; gap: 6px; align-items: center; }
+    .slot .acts .drop { flex: 1; padding: 6px; }
+    .unused li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .unused ul { list-style: none; padding: 0; margin: 10px 0 0; }
+    .unused button { font: inherit; font-size: 12px; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 8px; cursor: pointer; margin-left: 4px; }
+    .note { font-size: 12.5px; color: var(--soft); }
+    .note code { background: #efe8da; padding: 1px 5px; border-radius: 4px; }
+    a { color: var(--robe); }
+    @media (max-width: 720px) {
+      .row { grid-template-columns: 36px 1fr 32px; }
+      .row > input, .row > .vol { grid-column: 2 / 3; }
+      .row .meta, .row .file { grid-column: 1 / -1; grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div class="bar">
+        <div class="logo"></div>
+        <div>
+          <h1>Audio studio</h1>
+          <p>WeBuddhist Space · runs only on this computer</p>
+        </div>
+        <span class="status" id="status">Loading…</span>
+      </div>
+      <nav class="tabs" id="tabs" role="tablist"></nav>
+    </div>
+  </header>
+  <div class="wrap">
+    <main id="main"></main>
+    <p class="note">Files are saved to <code>public/audio/&lt;temple&gt;/</code> with a <code>manifest.json</code>.
+      Open temples in another tab to hear changes live. To publish, commit the folder and push to <code>main</code>.
+      Only use recordings you made or that are licensed for public use (CC0, CC BY…), and fill in the credit.</p>
+  </div>
+
+  <script type="module">
+    import { TEMPLES } from '/src/rooms/index.ts';
+    import { INSTRUMENTS } from '/src/instruments.ts';
+
+    const state = { temples: [], current: location.hash.slice(1) || 'bodhgaya' };
+    const $ = (s, el = document) => el.querySelector(s);
+    const h = (tag, attrs = {}, ...kids) => {
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+        else if (v !== false && v != null) el.setAttribute(k, v === true ? '' : v);
+      }
+      el.append(...kids.flat().filter((k) => k != null));
+      return el;
+    };
+    const LICENSES = ['', 'CC0', 'CC BY 4.0', 'CC BY-SA 4.0', 'Own recording', 'Licensed', 'Public domain'];
+    const SECTIONS = [
+      { key: 'ambient', title: 'Ambient', sub: 'Background sounds that loop together: wind, birds, the courtyard.' },
+      { key: 'chants', title: 'Chanting', sub: '“Listen to chanting” plays these. Pick which one plays for everyone at dawn and evening.' },
+      { key: 'music', title: 'Music', sub: 'Optional background music a visitor can turn on.' },
+    ];
+
+    const status = (text, cls = '') => { const s = $('#status'); s.textContent = text; s.className = 'status ' + cls; };
+    const temple = () => state.temples.find((t) => t.id === state.current);
+    const fmt = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.round(b / 1e3) + ' KB';
+    const url = (name) => `/audio/${state.current}/${encodeURIComponent(name)}`;
+
+    async function load() {
+      const res = await fetch('/__studio/api/state');
+      state.temples = (await res.json()).temples;
+      if (!temple()) state.current = state.temples[0].id;
+      render();
+      status('Ready');
+    }
+
+    let saveTimer = 0;
+    function save() {
+      clearTimeout(saveTimer);
+      status('Saving…');
+      saveTimer = setTimeout(async () => {
+        const t = temple();
+        const res = await fetch(`/__studio/api/manifest?temple=${t.id}`, { method: 'PUT', body: JSON.stringify(t.manifest) });
+        if (res.ok) status('Saved ✓', 'saved'); else status('Save failed: ' + (await res.json()).error, 'error');
+      }, 400);
+    }
+
+    async function upload(files) {
+      const names = [];
+      for (const f of files) {
+        status(`Uploading ${f.name}…`);
+        const res = await fetch(`/__studio/api/upload?temple=${state.current}&name=${encodeURIComponent(f.name)}`, { method: 'POST', body: f });
+        const body = await res.json();
+        if (!res.ok) { status(body.error, 'error'); continue; }
+        names.push(body.name);
+      }
+      const t = temple();
+      const fresh = (await (await fetch('/__studio/api/state')).json()).temples.find((x) => x.id === t.id);
+      t.files = fresh.files;
+      return names;
+    }
+
+    const newTrack = (src) => ({ src, title: { en: src.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), bo: '' }, credit: '', license: '', volume: 0.8 });
+
+    function dropZone(label, onFiles, multiple = true) {
+      const input = h('input', { type: 'file', accept: 'audio/*', multiple, hidden: true, onchange: () => { onFiles([...input.files]); input.value = ''; } });
+      const zone = h('div', { class: 'drop', role: 'button', tabindex: 0, onclick: () => input.click(),
+        onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') input.click(); } }, label, input);
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+      zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); onFiles([...e.dataTransfer.files]); });
+      return zone;
+    }
+
+    // one preview player shared by every play button
+    const preview = new Audio();
+    let playingBtn = null;
+    function playButton(name) {
+      const b = h('button', { class: 'icon play', title: 'Preview', 'aria-label': 'Preview' }, '▶');
+      b.addEventListener('click', () => {
+        if (playingBtn === b) { preview.pause(); b.classList.remove('on'); b.textContent = '▶'; playingBtn = null; return; }
+        if (playingBtn) { playingBtn.classList.remove('on'); playingBtn.textContent = '▶'; }
+        preview.src = url(name);
+        preview.play();
+        playingBtn = b; b.classList.add('on'); b.textContent = '❚❚';
+      });
+      return b;
+    }
+    preview.addEventListener('ended', () => { if (playingBtn) { playingBtn.classList.remove('on'); playingBtn.textContent = '▶'; playingBtn = null; } });
+
+    function trackRow(list, i, sectionKey) {
+      const t = temple();
+      const tr = list[i];
+      const file = t.files.find((f) => f.name === tr.src);
+      const services = sectionKey === 'chants'
+        ? ['dawn', 'evening'].map((kind) => h('label', {},
+            h('input', { type: 'checkbox', checked: t.manifest.services[kind] === tr.src || false,
+              onchange: (e) => { t.manifest.services[kind] = e.target.checked ? tr.src : null; save(); render(); } }),
+            kind === 'dawn' ? 'Dawn service' : 'Evening service'))
+        : [];
+      return h('div', { class: 'row' },
+        playButton(tr.src),
+        h('input', { type: 'text', value: tr.title.en, placeholder: 'Title (English)', oninput: (e) => { tr.title.en = e.target.value; save(); } }),
+        h('input', { type: 'text', lang: 'bo', value: tr.title.bo, placeholder: 'མིང་། (བོད་ཡིག)', oninput: (e) => { tr.title.bo = e.target.value; save(); } }),
+        h('label', { class: 'vol', title: 'Volume' }, h('input', { type: 'range', min: 0, max: 1, step: 0.01, value: tr.volume, oninput: (e) => { tr.volume = Number(e.target.value); save(); } })),
+        h('button', { class: 'icon del', title: 'Remove from list (keeps the file)', 'aria-label': 'Remove',
+          onclick: () => { list.splice(i, 1); for (const k of ['dawn', 'evening']) if (t.manifest.services[k] === tr.src) t.manifest.services[k] = null; save(); render(); } }, '✕'),
+        h('div', { class: 'meta' },
+          h('input', { type: 'text', value: tr.credit, placeholder: 'Credit: who recorded it, where it is from', oninput: (e) => { tr.credit = e.target.value; save(); } }),
+          (() => {
+            const sel = h('select', { onchange: (e) => { tr.license = e.target.value; save(); } }, ...LICENSES.map((l) => h('option', { value: l, selected: tr.license === l }, l || 'License…')));
+            if (tr.license && !LICENSES.includes(tr.license)) sel.append(h('option', { value: tr.license, selected: true }, tr.license));
+            return sel;
+          })(),
+          h('span', { class: 'note' }, file ? fmt(file.bytes) : '⚠ file missing')),
+        h('div', { class: 'file' }, tr.src, ...services));
+    }
+
+    function section({ key, title, sub }) {
+      const t = temple();
+      const list = t.manifest[key];
+      const rows = list.length ? list.map((_, i) => trackRow(list, i, key)) : [h('div', { class: 'empty' }, 'Nothing here yet — the built-in synthesized sound is used.')];
+      return h('section', { class: 'card' },
+        h('h2', {}, title, h('small', {}, sub)),
+        h('div', { class: 'rows' }, rows),
+        dropZone('Drop audio files here or click to choose', async (files) => {
+          const names = await upload(files);
+          for (const n of names) if (!list.some((x) => x.src === n)) list.push(newTrack(n));
+          save(); render();
+        }));
+    }
+
+    function instrumentsCard() {
+      const t = temple();
+      const def = TEMPLES[t.id];
+      return h('section', { class: 'card' },
+        h('h2', {}, 'Instruments', h('small', {}, 'A recording replaces the synthesized sound when a visitor plays it.')),
+        h('div', { class: 'inst-grid' }, def.instruments.map((id) => {
+          const tr = t.manifest.instruments[id];
+          return h('div', { class: 'slot' },
+            h('strong', {}, `${INSTRUMENTS[id].name.en} · `, h('span', { lang: 'bo' }, INSTRUMENTS[id].name.bo)),
+            h('div', { class: 'src' }, tr ? tr.src : 'Synthesized'),
+            tr ? h('label', {}, h('input', { type: 'range', min: 0, max: 1, step: 0.01, value: tr.volume, oninput: (e) => { tr.volume = Number(e.target.value); save(); } })) : null,
+            h('div', { class: 'acts' },
+              tr ? playButton(tr.src) : null,
+              dropZone(tr ? 'Replace' : 'Add recording', async (files) => {
+                const [n] = await upload(files.slice(0, 1));
+                if (n) { t.manifest.instruments[id] = { ...newTrack(n), title: INSTRUMENTS[id].name }; save(); render(); }
+              }, false),
+              tr ? h('button', { class: 'icon del', title: 'Use synthesized sound', 'aria-label': 'Remove', onclick: () => { delete t.manifest.instruments[id]; save(); render(); } }, '✕') : null));
+        })));
+    }
+
+    function unusedCard() {
+      const t = temple();
+      const used = new Set([...t.manifest.ambient, ...t.manifest.chants, ...t.manifest.music, ...Object.values(t.manifest.instruments)].map((x) => x.src));
+      const unused = t.files.filter((f) => !used.has(f.name));
+      if (!unused.length) return null;
+      return h('section', { class: 'card unused' },
+        h('h2', {}, 'Files not in use', h('small', {}, 'In the folder but not on any list.')),
+        h('ul', {}, unused.map((f) => h('li', {}, h('span', {}, `${f.name} · ${fmt(f.bytes)}`),
+          h('span', {},
+            ...SECTIONS.map((s) => h('button', { onclick: () => { t.manifest[s.key].push(newTrack(f.name)); save(); render(); } }, '+ ' + s.title)),
+            h('button', { onclick: async () => {
+              if (!confirm(`Delete ${f.name} from disk?`)) return;
+              await fetch(`/__studio/api/file?temple=${t.id}&name=${encodeURIComponent(f.name)}`, { method: 'DELETE' });
+              t.files = t.files.filter((x) => x.name !== f.name); render();
+            } }, 'Delete'))))));
+    }
+
+    function render() {
+      const tabs = $('#tabs');
+      tabs.replaceChildren(...state.temples.map((t) => {
+        const n = t.manifest.ambient.length + t.manifest.chants.length + t.manifest.music.length + Object.keys(t.manifest.instruments).length;
+        return h('button', { role: 'tab', 'aria-selected': t.id === state.current,
+          onclick: () => { state.current = t.id; location.hash = t.id; render(); } },
+          TEMPLES[t.id].name.en, h('small', {}, String(n)));
+      }));
+      const def = TEMPLES[state.current];
+      $('#main').replaceChildren(
+        h('section', { class: 'card' },
+          h('h2', {}, def.name.en, h('small', { lang: 'bo' }, def.name.bo), h('small', {}, def.place.en)),
+          h('p', { class: 'note' }, h('a', { href: `/?room=${def.id}`, target: '_blank' }, 'Open this temple ↗'))),
+        ...SECTIONS.map(section),
+        instrumentsCard(),
+        unusedCard() ?? '');
+    }
+
+    load().catch((e) => status('Could not load: ' + e.message, 'error'));
+  </script>
+</body>
+</html>

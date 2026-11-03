@@ -4,7 +4,22 @@
 export type Lang = 'en' | 'bo';
 
 const STRINGS = {
-  title: { en: 'Ritrö — rest a while', bo: 'རི་ཁྲོད། ཅུང་ཙམ་ངལ་གསོ།' },
+  title: { en: 'WeBuddhist Space — rest a while', bo: 'WeBuddhist Space · ཅུང་ཙམ་ངལ་གསོ།' },
+  brand: { en: 'WeBuddhist Space', bo: 'WeBuddhist Space' },
+  instruments: { en: 'Instruments', bo: 'རོལ་ཆ།' },
+  tapHint: { en: 'Tap to play · Space to strike', bo: 'མནན་ནས་རྡུང་། · Space ཡིས་རྡུང་།' },
+  bowlHint: { en: 'Tap to strike · circle the rim to make it sing', bo: 'མནན་ནས་རྡུང་། · ཁ་ཟུར་ལ་བསྐོར་ན་སྒྲ་སྒྲོག' },
+  bowStyle: { en: 'Way of bowing', bo: 'ཕྱག་འཚལ་སྟངས།' },
+  'tibetan-prostration': { en: 'Full prostration', bo: 'རྐྱང་ཕྱག' },
+  'five-point': { en: 'Five-point bow', bo: 'ཡན་ལག་ལྔའི་ཕྱག' },
+  'east-asian-bow': { en: 'Kneeling bow', bo: 'པུས་མོ་བཙུགས་ཕྱག' },
+  'standing-bow': { en: 'Standing bow', bo: 'ལངས་ཕྱག' },
+  music: { en: 'Music', bo: 'རོལ་དབྱངས།' },
+  musicSub: { en: 'Background music for this temple', bo: 'ལྷ་ཁང་འདིའི་རྒྱབ་ལྗོངས་རོལ་དབྱངས།' },
+  none: { en: 'None', bo: 'མེད།' },
+  chantPick: { en: 'Chant', bo: 'ཁ་འདོན།' },
+  synthChant: { en: 'Om (synthesized)', bo: 'ༀ། (བཟོ་བཅོས།)' },
+  studio: { en: 'Audio studio', bo: 'སྒྲ་སྒྲིག་ཁང་།' },
   openingHall: { en: 'Opening the hall', bo: 'ལྷ་ཁང་གི་སྒོ་འབྱེད་བཞིན་པ།' },
   restingTitle: { en: 'Resting for a moment', bo: 'ཅུང་ཙམ་ངལ་གསོ་བཞིན་པ།' },
   continueHere: { en: 'Continue resting here', bo: 'འདིར་མུ་མཐུད་ནས་ངལ་གསོ།' },

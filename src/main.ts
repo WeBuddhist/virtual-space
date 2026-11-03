@@ -1,13 +1,15 @@
 import * as THREE from 'three';
 import './style.css';
 import { applyDom, getLang, onLangChange, pick, setLang, t, type Key } from './i18n';
-import { TEMPLE, activeService, isDay, roomId, roomNumber } from './temple';
-import { buildWorld, BURNER, BURNER_STAND, SPAWN, type Cushion } from './world';
+import { ROOM_CAPACITY, TEMPLE_IDS, parseRoom, roomId, INSTANCES_PER_TEMPLE } from '../shared/rooms';
+import { TEMPLES } from './rooms';
+import { activeService, isDay } from './rooms/clock';
+import { buildWorld, type Cushion } from './world';
 import { Avatar, BOW_SECONDS, PALMS_SECONDS, type Pose } from './avatar';
 import { Player } from './player';
 import { Net, fetchRoomCounts, type NetPose, type ServerMsg, type Visitor } from './net';
 import { AudioEngine, type Bus } from './audio';
-import { Mala, WoodFish } from './overlays';
+import { InstrumentStage, Mala } from './overlays';
 
 const NAMES = [
   { en: 'Quiet Cloud', bo: 'ཞི་བའི་སྤྲིན།' }, { en: 'Gentle Wind', bo: 'དལ་བའི་རླུང་།' },
@@ -23,12 +25,18 @@ const NAMES = [
   { en: 'Evening Lamp', bo: 'དགོང་མོའི་མཆོད་མེ།' }, { en: 'Kind Heart', bo: 'སེམས་བཟང་།' },
   { en: 'Light Snow', bo: 'ཁ་བ་ཡང་པོ།' }, { en: 'Steady Breath', bo: 'དབུགས་བརྟན།' },
 ];
-const RESIDENTS = [
-  { seat: 0, name: 1, color: '#bdc5ad' }, { seat: 2, name: 9, color: '#cbbdab' },
-  { seat: 5, name: 7, color: '#b9c8c2' }, { seat: 9, name: 0, color: '#c8bd9c' },
-];
+const RESIDENT_LOOKS = [{ name: 1, color: '#bdc5ad' }, { name: 9, color: '#cbbdab' }, { name: 7, color: '#b9c8c2' }, { name: 0, color: '#c8bd9c' }];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+const params = new URLSearchParams(location.search);
+let room = params.get('room') ?? roomId('bodhgaya');
+if (!parseRoom(room)) room = roomId('bodhgaya');
+const temple = TEMPLES[parseRoom(room)!.temple];
+const roomLabel = (id: string) => {
+  const r = parseRoom(id)!;
+  return `${pick(TEMPLES[r.temple].name)} · ${r.n}`;
+};
 
 // ---- renderer and world -------------------------------------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -41,24 +49,30 @@ $('world').append(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 900);
 
 applyDom();
-$('temple-name').textContent = pick(TEMPLE.name);
-$('loading-name').textContent = pick(TEMPLE.name);
+$('temple-name').textContent = pick(temple.name);
+$('loading-name').textContent = pick(temple.name);
 await Promise.race([
   Promise.all([document.fonts.load('600 48px "Noto Serif Tibetan"'), document.fonts.load('16px "Noto Sans Tibetan"')]),
   new Promise((r) => setTimeout(r, 2500)),
 ]);
 
-const world = buildWorld(renderer);
+const world = buildWorld(renderer, temple);
+const RESIDENTS = temple.residents.map((seat, i) => ({ seat, ...RESIDENT_LOOKS[i % RESIDENT_LOOKS.length] }));
+const BURNER = world.site.burner.position;
+const BURNER_STAND = world.site.burner.stand;
 const scene = world.scene;
 const me = new Avatar();
-me.root.position.copy(SPAWN).add(new THREE.Vector3((Math.random() - 0.5) * 1.6, 0, Math.random()));
+me.root.position.copy(world.site.spawn).add(new THREE.Vector3((Math.random() - 0.5) * 1.6, 0, Math.random()));
 scene.add(me.root);
 
 const audio = new AudioEngine();
-audio.isDay = () => isDay();
+audio.isDay = () => isDay(temple);
+audio.loadManifest(temple.id);
+// the local audio studio pushes manifest changes straight into an open temple
+import.meta.hot?.on('audio-manifest', (d: { temple: string }) => { if (d.temple === temple.id) audio.reload(temple.id); });
 
 // ---- practice state ------------------------------------------------------
-type Mode = 'free' | 'palms' | 'bow' | 'kneel' | 'beads' | 'moktak';
+type Mode = 'free' | 'palms' | 'bow' | 'kneel' | 'beads' | 'instrument';
 let mode: Mode = 'free';
 let seat: number | null = null;
 let palmsTimer = 0;
@@ -70,7 +84,8 @@ const player = new Player(me, camera, world, renderer.domElement, {
   onBurner: () => offerIncense(),
   onMoveStart: () => leavePractice(),
 });
-player.yaw = Math.PI;
+player.yaw = world.site.spawnYaw;
+player.camYaw = player.yaw + Math.PI;
 player.snapCamera();
 if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera } });
 
@@ -81,7 +96,7 @@ function leavePractice() {
     seat = null;
     net?.stand();
   }
-  if (mode !== 'moktak') mode = 'free';
+  if (mode !== 'instrument') mode = 'free';
   updateDock();
 }
 
@@ -168,10 +183,10 @@ const mala = new Mala($('mala-host'), () => {
   audio.bead();
   beadPulse();
 }, () => closeOverlays());
-const woodfish = new WoodFish($('woodfish-host'), () => {
+const instruments = new InstrumentStage($('woodfish-host'), temple.instruments, (id) => {
   if (!audio.enabled) toast(t('soundFirst'));
-  audio.moktak();
-}, () => closeOverlays());
+  audio.play(id);
+}, (intensity) => audio.bowlRub(intensity), () => closeOverlays());
 
 let lastBeadSent = 0;
 function beadPulse() {
@@ -192,21 +207,21 @@ function openBeads() {
   updateDock();
 }
 
-function openMoktak() {
+function openInstruments() {
   if (mode === 'bow') stopBow(false);
   closeOverlays();
-  mode = 'moktak';
+  mode = 'instrument';
   practiceLayer.hidden = false;
-  woodfish.show();
+  instruments.show();
   updateDock();
 }
 
 function closeOverlays() {
   const was = mode;
   mala.hide();
-  woodfish.hide();
+  instruments.hide();
   practiceLayer.hidden = true;
-  if (was === 'beads' || was === 'moktak') {
+  if (was === 'beads' || was === 'instrument') {
     mode = seat !== null ? 'kneel' : 'free';
     me.setPose(seat !== null ? 'kneel' : 'idle');
   }
@@ -219,13 +234,13 @@ document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
     const p = b.dataset.practice;
     if (p === 'palms') startPalms();
     if (p === 'bow') (mode === 'bow' ? stopBow(true) : startBow());
-    if (p === 'moktak') (mode === 'moktak' ? closeOverlays() : openMoktak());
+    if (p === 'instrument') (mode === 'instrument' ? closeOverlays() : openInstruments());
     if (p === 'beads') (mode === 'beads' ? closeOverlays() : openBeads());
   });
 });
 
 function updateDock() {
-  const active: Record<string, boolean> = { palms: mode === 'palms', bow: mode === 'bow', moktak: mode === 'moktak', beads: mode === 'beads' };
+  const active: Record<string, boolean> = { palms: mode === 'palms', bow: mode === 'bow', moktak: mode === 'instrument', beads: mode === 'beads' };
   document.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => {
     const on = active[b.dataset.practice!];
     b.classList.toggle('active', on);
@@ -243,15 +258,15 @@ function updateDock() {
 window.addEventListener('keydown', (e) => {
   if ((e.target as HTMLElement)?.closest?.('input,dialog[open]')) return;
   if (e.key === 'Escape') return closeOverlays();
-  if (mode === 'moktak' || mode === 'beads') {
+  if (mode === 'instrument' || mode === 'beads') {
     if (e.key === '2' && mode === 'beads') closeOverlays();
-    if (e.key === '5' && mode === 'moktak') closeOverlays();
+    if (e.key === '5' && mode === 'instrument') closeOverlays();
     return;
   }
   if (e.key === '1' || e.key === 'e' || e.key === ' ') { e.preventDefault(); mode === 'bow' ? stopBow(true) : startBow(); }
   if (e.key === '2') openBeads();
   if (e.key === '3') startPalms();
-  if (e.key === '5') openMoktak();
+  if (e.key === '5') openInstruments();
 });
 
 // ---- toast ---------------------------------------------------------------
@@ -327,9 +342,6 @@ function removeRemote(id: string) {
 }
 
 // ---- networking ----------------------------------------------------------
-const params = new URLSearchParams(location.search);
-let room = params.get('room') ?? roomId(1);
-if (!Number.isFinite(roomNumber(room))) room = roomId(1);
 let net: Net | null = null;
 
 function connect() {
@@ -337,7 +349,7 @@ function connect() {
   for (const id of [...remotes.keys()]) removeRemote(id);
   net = new Net(room, { onMessage, onStatus });
   net.connect();
-  $('room-number').textContent = String(roomNumber(room));
+  $('room-number').textContent = String(parseRoom(room)!.n);
   const url = new URL(location.href);
   url.searchParams.set('room', room);
   history.replaceState(null, '', url);
@@ -431,7 +443,7 @@ function renderSound() {
   soundBtn.setAttribute('aria-label', t(soundBtn.dataset.i18nLabel as Key));
   soundBtn.title = t(soundBtn.dataset.i18nLabel as Key);
   const chip = $('btn-chant');
-  const svc = activeService();
+  const svc = activeService(temple, audio.serviceSeconds);
   chip.classList.toggle('on', audio.chanting);
   chip.textContent = audio.chanting ? (communal ? t('listeningTogether') : t('stopChant')) : svc ? t(svc.kind === 'dawn' ? 'dawnService' : 'eveningService') : t('listenChant');
   document.querySelectorAll<HTMLInputElement>('[data-bus]').forEach((i) => { i.value = String(audio.levels[i.dataset.bus as Bus]); });
@@ -439,8 +451,26 @@ function renderSound() {
   sw.setAttribute('aria-checked', String(audio.background));
   sw.textContent = '';
   $('bg-desc').textContent = audio.background ? t('backgroundOn') : t('backgroundOff');
+  // chant and music pickers come from the temple's audio manifest
+  const chantSel = $<HTMLSelectElement>('chant-select');
+  const chants = audio.manifest.chants;
+  chantSel.replaceChildren(...(chants.length ? chants : [null]).map((c, i) => new Option(c ? pick(c.title) || c.src : t('synthChant'), String(i), false, i === audio.chantIndex)));
+  chantSel.disabled = chants.length < 2;
+  const musicSel = $<HTMLSelectElement>('music-select');
+  $('music-row').hidden = !audio.manifest.music.length;
+  musicSel.replaceChildren(new Option(t('none'), ''), ...audio.manifest.music.map((m, i) => new Option(pick(m.title) || m.src, String(i), false, i === audio.musicIndex)));
 }
 audio.onChange(renderSound);
+$<HTMLSelectElement>('chant-select').addEventListener('change', (e) => {
+  audio.chantIndex = Number((e.target as HTMLSelectElement).value);
+  if (audio.chanting && !communal) audio.startChant(0);
+});
+$<HTMLSelectElement>('music-select').addEventListener('change', async (e) => {
+  const v = (e.target as HTMLSelectElement).value;
+  if (v === '') return audio.stopMusic();
+  if (!audio.enabled) await audio.enable().catch(() => {});
+  audio.startMusic(Number(v));
+});
 
 let communal = false;
 $('btn-chant').addEventListener('click', async () => {
@@ -450,17 +480,17 @@ $('btn-chant').addEventListener('click', async () => {
     return;
   }
   if (!audio.enabled) await audio.enable().catch(() => {});
-  const svc = activeService();
+  const svc = activeService(temple, audio.serviceSeconds);
   communal = !!svc;
-  audio.startChant(svc?.offset ?? 0);
+  audio.startChant(svc?.offset ?? 0, svc ? audio.serviceChantIndex(svc.kind) : audio.chantIndex);
 });
 // join or leave the communal service as its window opens and closes
 setInterval(() => {
-  const svc = activeService();
-  if (svc && audio.enabled && !audio.chanting) { communal = true; audio.startChant(svc.offset); }
+  const svc = activeService(temple, audio.serviceSeconds);
+  if (svc && audio.enabled && !audio.chanting) { communal = true; audio.startChant(svc.offset, audio.serviceChantIndex(svc.kind)); }
   if (!svc && communal) { communal = false; audio.stopChant(); }
-  $('orb').classList.toggle('night', !isDay());
-  $('orb').setAttribute('aria-label', isDay() ? t('day') : t('night'));
+  $('orb').classList.toggle('night', !isDay(temple));
+  $('orb').setAttribute('aria-label', isDay(temple) ? t('day') : t('night'));
 }, 1000);
 
 const langBtn = $('btn-lang');
@@ -469,13 +499,13 @@ document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.add
 function renderLang() {
   langBtn.textContent = getLang() === 'en' ? 'བོད' : 'EN';
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === getLang())));
-  $('temple-name').textContent = pick(TEMPLE.name);
+  $('temple-name').textContent = pick(temple.name);
   for (const [, el] of tags) {
     el.querySelector('span')!.textContent = pick(NAMES[Number(el.dataset.name) % NAMES.length]);
     if (el.classList.contains('me')) el.querySelector('i')!.textContent = t('me').replace('།', '');
   }
   mala.renderCount();
-  woodfish.renderAuto();
+  instruments.render();
   updateDock();
   renderSound();
 }
@@ -512,27 +542,47 @@ $('btn-room').addEventListener('click', () => { renderRooms(null); dlgRooms.show
 $('room-refresh').addEventListener('click', refreshRooms);
 async function refreshRooms() { renderRooms(await fetchRoomCounts()); }
 function renderRooms(counts: Record<string, number> | null) {
-  $('room-current').textContent = `${t('current')} · ${t('room')} ${roomNumber(room)}`;
+  $('room-current').textContent = `${t('current')} · ${roomLabel(room)}`;
   const grid = $('room-grid');
   grid.innerHTML = '';
-  for (let n = 1; n <= TEMPLE.roomCount; n++) {
-    const id = roomId(n);
-    const count = counts?.[id];
-    const full = count !== undefined && count >= TEMPLE.capacity;
-    const b = document.createElement('button');
-    b.setAttribute('aria-current', String(id === room));
-    b.disabled = full && id !== room;
-    b.innerHTML = '<strong></strong><small></small>';
-    b.querySelector('strong')!.textContent = `${t('room')} ${n}`;
-    b.querySelector('small')!.textContent = count === undefined ? t('checking') : `${count} / ${TEMPLE.capacity}${full ? ` · ${t('full')}` : ''}`;
-    b.addEventListener('click', () => {
-      dlgRooms.close();
-      if (id === room) return;
-      room = id;
-      leavePractice();
-      connect();
-    });
-    grid.append(b);
+  // the current temple first, then the others
+  const order = [temple.id, ...TEMPLE_IDS.filter((id) => id !== temple.id)];
+  for (const tid of order) {
+    const def = TEMPLES[tid];
+    const ids = Array.from({ length: INSTANCES_PER_TEMPLE }, (_, i) => roomId(tid, i + 1));
+    const total = counts ? ids.reduce((sum, id) => sum + (counts[id] ?? 0), 0) : undefined;
+    const section = document.createElement('section');
+    section.className = 'temple-group';
+    section.innerHTML = '<header><strong></strong><small></small></header><div class="room-grid-inner"></div>';
+    section.querySelector('strong')!.textContent = pick(def.name);
+    section.querySelector('small')!.textContent = `${pick(def.place)}${total !== undefined ? ` · ${total}` : ''}`;
+    const inner = section.querySelector('.room-grid-inner')!;
+    for (const id of ids) {
+      const count = counts?.[id];
+      const full = count !== undefined && count >= ROOM_CAPACITY;
+      const b = document.createElement('button');
+      b.setAttribute('aria-current', String(id === room));
+      b.disabled = full && id !== room;
+      b.innerHTML = '<strong></strong><small></small>';
+      b.querySelector('strong')!.textContent = String(parseRoom(id)!.n);
+      b.querySelector('small')!.textContent = count === undefined ? '…' : `${count}/${ROOM_CAPACITY}`;
+      b.addEventListener('click', () => {
+        dlgRooms.close();
+        if (id === room) return;
+        if (parseRoom(id)!.temple !== temple.id) {
+          // a different temple needs its own world, so load it fresh
+          const url = new URL(location.href);
+          url.searchParams.set('room', id);
+          location.assign(url);
+          return;
+        }
+        room = id;
+        leavePractice();
+        connect();
+      });
+      inner.append(b);
+    }
+    grid.append(section);
   }
 }
 
@@ -540,7 +590,7 @@ $('btn-exit').addEventListener('click', () => {
   net?.close();
   net = null;
   audio.disable();
-  $('exit-name').textContent = pick(TEMPLE.name);
+  $('exit-name').textContent = pick(temple.name);
   $('exit-screen').hidden = false;
 });
 $('btn-stay').addEventListener('click', () => location.reload());

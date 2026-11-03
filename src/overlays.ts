@@ -1,4 +1,6 @@
-import { t } from './i18n';
+import { pick, t } from './i18n';
+import { INSTRUMENTS, type InstrumentDef } from './instruments';
+import type { InstrumentId } from './rooms/types';
 
 const BEADS_PER_ROUND = 108;
 
@@ -140,59 +142,89 @@ export class Mala {
   }
 }
 
-/** wood fish with a mallet: tap to strike, or let it keep a steady beat */
-export class WoodFish {
+
+/** the temple's instruments: tap to strike, keep a steady beat, or circle a bowl's rim */
+export class InstrumentStage {
   readonly el: HTMLElement;
-  private body: SVGGElement;
-  private mallet: SVGGElement;
+  private tray: HTMLElement;
+  private art: HTMLButtonElement;
+  private hint: HTMLElement;
   private autoBtn: HTMLButtonElement;
   private timer = 0;
+  private current: InstrumentDef;
+  private rubAngle: number | null = null;
+  private rubSpeed = 0;
+  private raf = 0;
   open = false;
 
-  constructor(host: HTMLElement, private onStrike: () => void, private onClose: () => void) {
+  constructor(
+    host: HTMLElement,
+    private ids: InstrumentId[],
+    private onStrike: (id: InstrumentId) => void,
+    private onRub: (intensity: number) => void,
+    private onClose: () => void,
+  ) {
     this.el = host;
+    this.current = INSTRUMENTS[ids[0]];
     host.innerHTML = `
-      <button class="woodfish" aria-label="">
-        <svg viewBox="0 0 240 200" width="240" height="200">
-          <defs>
-            <radialGradient id="wf" cx="38%" cy="32%" r="75%">
-              <stop offset="0" stop-color="#d7884a"/><stop offset=".6" stop-color="#9a4f22"/><stop offset="1" stop-color="#5c2a10"/>
-            </radialGradient>
-          </defs>
-          <g class="wf-body">
-            <ellipse cx="110" cy="118" rx="82" ry="66" fill="url(#wf)"/>
-            <path d="M150 64 q30 -30 52 -6 q-8 22 -34 22" fill="none" stroke="#7a3d18" stroke-width="12" stroke-linecap="round"/>
-            <path d="M48 118 q62 22 124 0" fill="none" stroke="#2e1408" stroke-width="9" stroke-linecap="round"/>
-            <ellipse cx="80" cy="88" rx="22" ry="12" fill="#fff" opacity=".18"/>
-          </g>
-          <g class="wf-mallet">
-            <rect x="150" y="150" width="78" height="10" rx="5" fill="#8a5a2e" transform="rotate(-18 150 155)"/>
-            <circle cx="150" cy="156" r="15" fill="#b07a46"/>
-          </g>
-        </svg>
-      </button>
+      <div class="inst-tray" role="tablist"></div>
+      <button class="inst-art"></button>
+      <p class="inst-hint"></p>
       <div class="overlay-bar">
         <button class="chip" data-act="auto"><span class="ico">▷</span> <span class="lbl"></span></button>
         <button class="chip icon" data-act="close" data-i18n-label="close">✕</button>
       </div>`;
-    this.body = host.querySelector('.wf-body')!;
-    this.mallet = host.querySelector('.wf-mallet')!;
+    this.tray = host.querySelector('.inst-tray')!;
+    this.art = host.querySelector('.inst-art')!;
+    this.hint = host.querySelector('.inst-hint')!;
     this.autoBtn = host.querySelector('[data-act=auto]')!;
-    host.querySelector('.woodfish')!.addEventListener('pointerdown', (e) => { e.preventDefault(); this.strike(); });
+    this.tray.hidden = ids.length < 2;
+    this.art.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (this.current.rub) {
+        this.art.setPointerCapture(e.pointerId);
+        this.rubAngle = this.angle(e);
+      }
+      this.strike();
+    });
+    this.art.addEventListener('pointermove', (e) => {
+      if (this.rubAngle === null) return;
+      const a = this.angle(e);
+      let d = a - this.rubAngle;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      this.rubAngle = a;
+      this.rubSpeed = Math.min(1, this.rubSpeed + Math.abs(d) * 0.6);
+    });
+    const endRub = () => { this.rubAngle = null; };
+    this.art.addEventListener('pointerup', endRub);
+    this.art.addEventListener('pointercancel', endRub);
     this.autoBtn.addEventListener('click', () => this.toggleAuto());
     host.querySelector('[data-act=close]')!.addEventListener('click', () => this.onClose());
     window.addEventListener('keydown', (e) => {
       if (this.open && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); this.strike(); }
     });
-    this.renderAuto();
+    this.render();
+  }
+
+  private angle(e: PointerEvent) {
+    const r = this.art.getBoundingClientRect();
+    return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2));
+  }
+
+  select(id: InstrumentId) {
+    if (this.timer) this.toggleAuto();
+    this.current = INSTRUMENTS[id];
+    this.render();
   }
 
   strike() {
-    this.onStrike();
-    for (const [el, cls] of [[this.body, 'hit'], [this.mallet, 'hit']] as const) {
-      el.classList.remove(cls);
+    this.onStrike(this.current.id);
+    for (const sel of ['.inst-body', '.inst-striker']) {
+      const el = this.art.querySelector<SVGElement>(sel);
+      if (!el) continue;
+      el.classList.remove('hit');
       void el.getBoundingClientRect();
-      el.classList.add(cls);
+      el.classList.add('hit');
     }
   }
 
@@ -202,25 +234,55 @@ export class WoodFish {
       this.timer = 0;
     } else {
       this.strike();
-      this.timer = window.setInterval(() => this.strike(), 640);
+      this.timer = window.setInterval(() => this.strike(), this.current.autoplayMs);
     }
+    this.renderAuto();
+  }
+
+  render() {
+    this.tray.innerHTML = '';
+    for (const id of this.ids) {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(id === this.current.id));
+      b.textContent = pick(INSTRUMENTS[id].name);
+      b.addEventListener('click', () => this.select(id));
+      this.tray.append(b);
+    }
+    this.art.innerHTML = this.current.art;
+    this.art.dataset.motion = this.current.motion;
+    this.art.setAttribute('aria-label', pick(this.current.name));
+    this.hint.textContent = this.current.rub ? t('bowlHint') : t('tapHint');
     this.renderAuto();
   }
 
   renderAuto() {
     this.autoBtn.querySelector('.ico')!.textContent = this.timer ? '❚❚' : '▷';
     this.autoBtn.querySelector('.lbl')!.textContent = this.timer ? t('pause') : t('autoplay');
-    this.el.querySelector('.woodfish')!.setAttribute('aria-label', t('moktak'));
   }
 
-  show() {
+  private rubLoop = () => {
+    if (!this.open) return;
+    this.rubSpeed *= 0.94;
+    this.onRub(this.current.rub ? this.rubSpeed : 0);
+    this.raf = requestAnimationFrame(this.rubLoop);
+  };
+
+  show(id?: InstrumentId) {
     this.open = true;
     this.el.hidden = false;
+    if (id && id !== this.current.id) this.select(id);
+    cancelAnimationFrame(this.raf);
+    this.rubLoop();
   }
 
   hide() {
     this.open = false;
     this.el.hidden = true;
     if (this.timer) this.toggleAuto();
+    cancelAnimationFrame(this.raf);
+    this.rubSpeed = 0;
+    this.onRub(0);
   }
 }

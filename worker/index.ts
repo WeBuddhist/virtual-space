@@ -3,6 +3,7 @@
 // Mirrors the observed sansatemple behaviour: 100 rooms, 100 visitors each,
 // seat reservations, and practice events relayed to everyone in the room.
 import { DurableObject } from 'cloudflare:workers';
+import { ALL_ROOM_IDS, ROOM_CAPACITY as CAPACITY, SEATING, parseRoom } from '../shared/rooms';
 
 interface Env {
   ASSETS: Fetcher;
@@ -10,16 +11,13 @@ interface Env {
   LOBBY: DurableObjectNamespace<Lobby>;
 }
 
-const ROOM_COUNT = 100;
-const CAPACITY = 100;
-const CUSHIONS = 18;
-const RESIDENT_SEATS = [0, 2, 5, 9]; // held by the four resident practitioners
 const NAME_COUNT = 24;
 const COLORS = ['#bdc5ad', '#cbbdab', '#b9c8c2', '#c8bd9c', '#c9b3b8', '#b4bfd0', '#d1c3a3', '#b8c9b0'];
 const POSES = new Set(['walk', 'kneel', 'beads', 'idle']);
 const ACTS = new Set(['hello', 'bow', 'stand', 'bead', 'incense']);
-const ROOM_IDS = Array.from({ length: ROOM_COUNT }, (_, i) => (i === 0 ? 'room' : `room-${String(i + 1).padStart(2, '0')}`));
+const ROOM_IDS = ALL_ROOM_IDS;
 const ROOM_SET = new Set(ROOM_IDS);
+const DEFAULT_ROOM = ROOM_IDS[0];
 
 interface Visitor {
   id: string; name: number; color: string;
@@ -41,7 +39,7 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/presence') {
       if (req.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return new Response('Expected WebSocket', { status: 426 });
-      const room = ROOM_SET.has(url.searchParams.get('room') ?? '') ? url.searchParams.get('room')! : 'room';
+      const room = ROOM_SET.has(url.searchParams.get('room') ?? '') ? url.searchParams.get('room')! : DEFAULT_ROOM;
       const forward = new URL(req.url);
       forward.searchParams.set('room', room);
       return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(forward, req));
@@ -80,7 +78,7 @@ export class Room extends DurableObject<Env> {
   }
 
   async fetch(req: Request): Promise<Response> {
-    const room = new URL(req.url).searchParams.get('room') ?? 'room';
+    const room = new URL(req.url).searchParams.get('room') ?? DEFAULT_ROOM;
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     const others = this.sockets();
@@ -133,8 +131,10 @@ export class Room extends DurableObject<Env> {
         break;
       case 'seat': {
         const seat = m.seat;
-        const taken = RESIDENT_SEATS.includes(seat) || this.sockets().some((s) => s !== ws && this.attachment(s)?.v.seat === seat);
-        if (!Number.isInteger(seat) || seat < 0 || seat >= CUSHIONS || taken) {
+        // each temple has its own cushions, some held by resident practitioners
+        const seating = SEATING[parseRoom(a.room)!.temple];
+        const taken = seating.residents.includes(seat) || this.sockets().some((s) => s !== ws && this.attachment(s)?.v.seat === seat);
+        if (!Number.isInteger(seat) || seat < 0 || seat >= seating.cushions || taken) {
           ws.send(JSON.stringify({ type: 'seat-unavailable' }));
           break;
         }

@@ -1,5 +1,5 @@
 {
-  "name": "ritro-virtual-temple",
+  "name": "webuddhist-space",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,7 +8,8 @@
     "build": "npm run typecheck && vite build",
     "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
     "deploy": "npm run build && wrangler deploy",
-    "preview": "npm run build && wrangler dev"
+    "preview": "npm run build && wrangler dev",
+    "studio": "vite --open /__studio"
   },
   "dependencies": {
     "three": "^0.180.0"

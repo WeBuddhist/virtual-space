@@ -47,7 +47,7 @@
       <nav class="dock" aria-label="practice">
         <button data-practice="palms"><svg viewBox="0 0 24 24"><path d="M12 3c-2 4-4 8-4 12a4 4 0 0 0 8 0c0-4-2-8-4-12zM12 3v16" /></svg><span data-i18n="palms"></span></button>
         <button data-practice="bow"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5" /><path d="M5 20c1-5 4-8 7-8s6 3 7 8M8 16h8" /></svg><span class="bow-label" data-i18n="bow"></span></button>
-        <button data-practice="moktak"><svg viewBox="0 0 24 24"><ellipse cx="11" cy="14" rx="7" ry="6" /><path d="M6 14h10M15 8l4-4" /></svg><span data-i18n="moktak"></span></button>
+        <button data-practice="instrument"><svg viewBox="0 0 24 24"><ellipse cx="11" cy="14" rx="7" ry="6" /><path d="M6 14h10M15 8l4-4" /></svg><span data-i18n="instruments"></span></button>
         <button data-practice="beads"><svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="1.6" /><circle cx="17" cy="6.5" r="1.6" /><circle cx="19" cy="12" r="1.6" /><circle cx="17" cy="17.5" r="1.6" /><circle cx="12" cy="20" r="1.6" /><circle cx="7" cy="17.5" r="1.6" /><circle cx="5" cy="12" r="1.6" /><circle cx="7" cy="6.5" r="1.6" /></svg><span data-i18n="beads"></span></button>
       </nav>
 
@@ -78,6 +78,9 @@
         <label class="slider"><span><strong data-i18n="ambient"></strong><small data-i18n="ambientSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="ambient" /></label>
         <label class="slider"><span><strong data-i18n="effects"></strong><small data-i18n="effectsSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="effects" /></label>
         <label class="slider"><span><strong data-i18n="chanting"></strong><small data-i18n="chantingSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="chant" /></label>
+        <label class="slider"><span><strong data-i18n="music"></strong><small data-i18n="musicSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="music" /></label>
+        <div class="toggle-row"><span><strong data-i18n="chantPick"></strong></span><select id="chant-select" class="select"></select></div>
+        <div class="toggle-row" id="music-row"><span><strong data-i18n="music"></strong></span><select id="music-select" class="select"></select></div>
         <div class="toggle-row"><span><strong data-i18n="background"></strong><small id="bg-desc"></small></span><button class="switch" id="bg-switch" role="switch"></button></div>
         <div class="toggle-row"><span><strong data-i18n="language"></strong></span>
           <div class="seg"><button data-lang="en">English</button><button data-lang="bo">བོད་ཡིག</button></div></div>
