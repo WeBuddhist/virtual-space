@@ -29,10 +29,6 @@ export const jobs: Record<string, Job> = {
       aspect: '1:1', size: '1K', maxPx: 1024, quality: 58,
       prompt: TILE + 'Bark of an old sacred fig (peepal, Ficus religiosa) tree trunk: smooth grey-brown bark with pale patches, vertical ridges and folds, lichen spots.',
     },
-    foliage: {
-      aspect: '1:1', size: '1K', maxPx: 768, quality: 58,
-      prompt: TILE + 'Dense canopy foliage of mango and peepal trees seen up close: overlapping glossy green leaves in many shades, small gaps of deep shadow, soft dappled sunlight.',
-    },
     lawn: {
       aspect: '1:1', size: '1K', maxPx: 1024, quality: 58,
       prompt: TILE + 'Top-down view of a short, well-kept lawn in Bihar, India, in the dry season: mixed green and yellowing grass blades, a few small fallen peepal leaves.',
