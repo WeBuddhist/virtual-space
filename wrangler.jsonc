@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ritro-space",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/presence", "/rooms"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" },
+      { "name": "LOBBY", "class_name": "Lobby" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room", "Lobby"] }],
+  // wrangler deploy creates the DNS record, since webuddhist.com is in the same Cloudflare account
+  "routes": [{ "pattern": "space.webuddhist.com", "custom_domain": true }],
+  "workers_dev": false,
+  "observability": { "enabled": true }
+}

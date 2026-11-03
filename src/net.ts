@@ -35,6 +35,7 @@ export class Net {
   private socket?: WebSocket;
   private retry = 0;
   private retryTimer?: number;
+  private pingTimer?: number;
   private moveTimer?: number;
   private pendingMove?: { x: number; z: number; yaw: number; pose: NetPose };
   private lastMove = '';
@@ -53,7 +54,12 @@ export class Net {
     url.searchParams.set('room', this.room);
     const ws = new WebSocket(url);
     this.socket = ws;
-    ws.addEventListener('open', () => { this.retry = 0; });
+    ws.addEventListener('open', () => {
+      this.retry = 0;
+      // heartbeat: the server drops sockets that stay silent for 90s
+      clearInterval(this.pingTimer);
+      this.pingTimer = window.setInterval(() => ws.readyState === WebSocket.OPEN && ws.send('ping'), 20_000);
+    });
     ws.addEventListener('message', (e) => {
       let msg: ServerMsg;
       try { msg = JSON.parse(e.data); } catch { return; }
@@ -69,7 +75,9 @@ export class Net {
       this.cb.onMessage(msg);
     });
     ws.addEventListener('close', () => {
-      if (this.socket !== ws || this.closed) return;
+      if (this.socket !== ws) return;
+      clearInterval(this.pingTimer);
+      if (this.closed) return;
       this.setStatus('offline');
       const delay = Math.min(15_000, 800 * 2 ** this.retry++);
       this.retryTimer = window.setTimeout(() => this.connect(), delay);
@@ -107,6 +115,7 @@ export class Net {
   close() {
     this.closed = true;
     clearTimeout(this.retryTimer);
+    clearInterval(this.pingTimer);
     this.send({ type: 'leave' });
     this.socket?.close(1000, 'Leaving');
   }

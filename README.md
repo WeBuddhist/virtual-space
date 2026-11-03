@@ -9,23 +9,20 @@ for what was observed on that site and how.
 
 ```bash
 npm install
-npm run dev        # room server on :8787 + Vite on :5173
+npm run dev        # Worker (wrangler dev) on :8787 + Vite on :5173
 ```
 
 Open http://localhost:5173. Open a second tab to see another visitor.
 `?room=room-07` picks a room, `?time=21:00` pins the temple clock (to preview night and prayer times).
 
-## Deploy
+## Deploy (Cloudflare)
 
-One Node process serves the built site, `/rooms` and the `/presence` WebSocket, so it needs a host that
-runs a long-lived server (Railway, Fly, Render, a VPS), not static-only hosting.
+A single Worker (`worker/index.ts`, config in `wrangler.jsonc`) serves the built site, `/rooms`, and the
+`/presence` WebSocket. Each room is a Durable Object with hibernating WebSockets, and a `Lobby` object keeps the room counts.
 
-```bash
-docker build -t ritro . && docker run -p 8787:8787 ritro
-```
-
-Target: `space.webuddhist.com`. DNS for webuddhist.com is on Cloudflare, so add a `CNAME space → <host domain>`
-there. If the record is proxied, set SSL to Full; Cloudflare passes WebSockets through.
+- **Production:** Cloudflare Workers Builds watches `main` on GitHub, runs `npm run build`, then `npx wrangler deploy`.
+- **Domain:** `space.webuddhist.com` is declared as a custom domain in `wrangler.jsonc`, so deploying creates the DNS record.
+- **Manual deploy:** `npx wrangler login`, then `npm run deploy`.
 
 ## What's in the MVP (parity with sansatemple)
 
@@ -61,7 +58,7 @@ src/net.ts       presence client
 src/audio.ts     Web Audio synthesis (wind, birds, bowl, wood fish, mala, chant)
 src/overlays.ts  mala and wood fish
 src/i18n.ts      English / Tibetan strings
-server/          WebSocket room server
+worker/          Cloudflare Worker + Durable Objects (rooms, lobby)
 ```
 
 ## Phase 2: modular rooms and avatars
@@ -70,7 +67,7 @@ server/          WebSocket room server
 2. Load hall/statue GLB models per temple, with the procedural ones as fallback.
 3. Real chant recordings per temple (`audio.chantSrc`), plus per-room ambience.
 4. Avatar picker: robe/shirt/skin colours, then models, saved per visitor and sent in `join`.
-5. Server: persist room ⇄ temple mapping; move to Cloudflare Durable Objects for scale.
+5. Server: persist the room ⇄ temple mapping in the Lobby object.
 
 ## Assets and content
 
