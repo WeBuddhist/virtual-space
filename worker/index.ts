@@ -71,7 +71,12 @@ export class Room extends DurableObject<Env> {
         await this.depart(ws);
       }
     }
-    if (this.sockets().length) await this.ctx.storage.setAlarm(now + SWEEP_MS);
+    const live = this.sockets();
+    if (live.length) {
+      // refresh the lobby so a room that is restarted mid-visit doesn't leave a stale count
+      await this.report(this.attachment(live[0])!.room);
+      await this.ctx.storage.setAlarm(now + SWEEP_MS);
+    }
   }
 
   async fetch(req: Request): Promise<Response> {
@@ -185,14 +190,19 @@ export class Room extends DurableObject<Env> {
   }
 }
 
-/** keeps the visitor count of every room for the room picker */
+/** keeps the visitor count of every room for the room picker; rooms re-report on each sweep */
 export class Lobby extends DurableObject<Env> {
   async setCount(room: string, n: number) {
-    if (n > 0) await this.ctx.storage.put(room, n);
+    if (n > 0) await this.ctx.storage.put(room, { n, at: Date.now() });
     else await this.ctx.storage.delete(room);
   }
 
   async counts(): Promise<Record<string, number>> {
-    return Object.fromEntries(await this.ctx.storage.list<number>());
+    const fresh = Date.now() - SWEEP_MS * 2.5;
+    const out: Record<string, number> = {};
+    for (const [room, e] of await this.ctx.storage.list<{ n: number; at: number }>()) {
+      if (e.at >= fresh) out[room] = e.n;
+    }
+    return out;
   }
 }
