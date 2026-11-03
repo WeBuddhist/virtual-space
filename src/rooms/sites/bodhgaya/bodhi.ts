@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makePrayerFlags } from '../../../kit/props';
+import { photo } from '../../../kit/textures';
 import { GOLD_TOP, TEMPLE } from './tower';
 
 // The Bodhi tree west of the temple and the Vajrasana between them, after the
@@ -9,7 +10,7 @@ import { GOLD_TOP, TEMPLE } from './tower';
 export const TREE = new THREE.Vector3(-25, 0, 0);
 export const VAJRASANA = new THREE.Vector3(TEMPLE.x0 - 2.2, 0, 0);
 
-const bark = new THREE.MeshStandardMaterial({ color: 0x6d6151, roughness: 0.95 });
+const bark = photo(new THREE.MeshStandardMaterial({ color: 0x6d6151, roughness: 0.95 }), '/textures/bodhgaya/bark.jpg', { repeat: [2, 3], mirror: true, bump: 3 });
 
 /** a limb as a tapered cylinder between two points */
 function limb(a: THREE.Vector3, b: THREE.Vector3, ra: number, rb: number) {
@@ -39,7 +40,7 @@ export function buildBodhi(rng: () => number) {
   const T = TREE;
 
   // raised platform with a stone railing and an inner brass rail
-  const platform = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.5, 40), new THREE.MeshStandardMaterial({ color: 0xbfae92, roughness: 0.9 }));
+  const platform = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.5, 40), photo(new THREE.MeshStandardMaterial({ color: 0xbfae92, roughness: 0.9 }), '/textures/bodhgaya/flagstones.jpg', { repeat: [3, 3], mirror: true }));
   platform.position.set(T.x, 0.25, T.z);
   platform.receiveShadow = true;
   group.add(platform);

@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { photo } from '../../../kit/textures';
+
+const TEX = '/textures/bodhgaya/';
 
 // The Mahabodhi tower: a straight-sided shikhara of buff sandstone-stucco covered in
 // bands of chaitya-arch niches, with projecting central ribs, four corner towers and
@@ -127,6 +130,9 @@ export function buildTower() {
   const tex = nicheTexture(6, 8);
   const stone = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex.map, bumpMap: tex.bump, bumpScale: 6, roughness: 0.95 });
   const plain = new THREE.MeshStandardMaterial({ color: 0xbf9d6c, roughness: 0.95 });
+  // photo textures (scripts/textures): the niche photo holds three bands per tile
+  photo(stone, TEX + 'tower-niches.jpg', { repeat: [1, 1 / 3], bump: 4 });
+  photo(plain, TEX + 'stucco.jpg', { repeat: [3, 2], mirror: true, bump: 1.5 });
 
   // lower storey: solid masonry around a doorway, a vestibule and the sanctum
   const slab = (x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, mat: THREE.Material = plain) => {
@@ -154,6 +160,7 @@ export function buildTower() {
   const bandMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: bandTex.map, bumpMap: bandTex.bump, bumpScale: 3, roughness: 0.95 });
   bandTex.map.repeat.set(2, 1);
   bandTex.bump.repeat.set(2, 1);
+  photo(bandMat, TEX + 'tower-niches.jpg', { repeat: [3.5, 1 / 3], bump: 4 });
   const band = new THREE.Mesh(new THREE.BoxGeometry(T.x1 - T.x0 + 0.3, 3.2, T.z1 - T.z0 + 0.3), bandMat);
   band.position.set(cx, 6.6, 0);
   group.add(band);
@@ -175,7 +182,21 @@ export function buildTower() {
     group.add(r);
   }
   // the tall arched window on the east face that lights the upper hall
-  const win = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 8), new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 1 }));
+  // a tall pointed-arch opening with a carved frame
+  const arch = (w: number, h: number) => {
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2, -h / 2);
+    s.lineTo(w / 2, -h / 2);
+    s.lineTo(w / 2, h / 2 - w * 0.7);
+    s.quadraticCurveTo(w / 2, h / 2 - w * 0.15, 0, h / 2);
+    s.quadraticCurveTo(-w / 2, h / 2 - w * 0.15, -w / 2, h / 2 - w * 0.7);
+    s.closePath();
+    return new THREE.ShapeGeometry(s, 12);
+  };
+  const win = new THREE.Mesh(arch(1.6, 7), new THREE.MeshStandardMaterial({ color: 0x1e1610, roughness: 1 }));
+  const frameMesh = new THREE.Mesh(arch(2.4, 8), plain);
+  frameMesh.position.z = -0.04;
+  win.add(frameMesh);
   // the east face leans back by atan(2.75 / H); 6 m up it sits 4.54 m from the axis
   win.position.set(cx + 5 - 2.75 * (6 / H) + 0.05, T.baseH + 6, 0);
   win.rotation.y = Math.PI / 2;
@@ -197,7 +218,7 @@ export function buildTower() {
   }
 
   // east porch with its doorway
-  const porchMat = new THREE.MeshStandardMaterial({ color: 0xbfa985, roughness: 0.9 });
+  const porchMat = photo(new THREE.MeshStandardMaterial({ color: 0xbfa985, roughness: 0.9 }), TEX + 'stucco.jpg', { mirror: true, bump: 1.5 });
   const piece = (w: number, h: number, d: number, x: number, y: number, z: number) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), porchMat);
     m.position.set(x, y, z);

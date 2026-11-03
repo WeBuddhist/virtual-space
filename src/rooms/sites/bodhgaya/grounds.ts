@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { photo } from '../../../kit/textures';
 import type { Box2 } from '../../types';
 import { TEMPLE } from './tower';
 
@@ -13,8 +14,16 @@ export const RAIL = { x0: -33, x1: 9, z0: -13, z1: 13, gate: 3.2 };
 export const BURNER_AT = new THREE.Vector3(22, 0, 26);
 
 const std = (color: number, roughness = 0.9, metalness = 0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
-const sandstone = std(0xb58a68);
-const buff = std(0xbfae92);
+/** stretch a geometry's UVs so a texture tiles about every `tile` metres along its length */
+const tileUV = <G extends THREE.BufferGeometry>(geo: G, u: number, v: number) => {
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * u, uv.getY(i) * v);
+  return geo;
+};
+const TEX = '/textures/bodhgaya/';
+// carved red sandstone (railing, gateway) and buff stucco (kerbs, Jewel Walk), from generated photos
+const sandstone = photo(std(0xb58a68), TEX + 'railing.jpg', { mirror: true, bump: 2 });
+const buff = photo(std(0xbfae92), TEX + 'stucco.jpg', { mirror: true, bump: 1 });
 
 function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, repeat: [number, number]) {
   const c = document.createElement('canvas');
@@ -155,18 +164,18 @@ export function buildGrounds(rng: () => number) {
   const add = (o: THREE.Object3D) => { group.add(o); return o; };
 
   // courtyard and approach path
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(BOUNDS.x1 - BOUNDS.x0 + 30, BOUNDS.z1 - BOUNDS.z0 + 30), new THREE.MeshStandardMaterial({ map: flagstones([18, 14]), roughness: 0.95 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(BOUNDS.x1 - BOUNDS.x0 + 30, BOUNDS.z1 - BOUNDS.z0 + 30), photo(new THREE.MeshStandardMaterial({ map: flagstones([18, 14]), roughness: 0.95 }), TEX + 'flagstones.jpg', { repeat: [32, 26], mirror: true }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.set((BOUNDS.x0 + BOUNDS.x1) / 2, 0, (BOUNDS.z0 + BOUNDS.z1) / 2);
   ground.receiveShadow = true;
   floor.push(add(ground));
-  const path = new THREE.Mesh(new THREE.PlaneGeometry(PATH.x1 - PATH.x0, PATH.halfW * 2), new THREE.MeshStandardMaterial({ map: marble([12, 1.5]), roughness: 0.18, metalness: 0.05 }));
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(PATH.x1 - PATH.x0, PATH.halfW * 2), photo(new THREE.MeshStandardMaterial({ map: marble([12, 1.5]), roughness: 0.18, metalness: 0.05 }), TEX + 'marble.jpg', { repeat: [18, 2.2] }));
   path.rotation.x = -Math.PI / 2;
   path.position.set((PATH.x0 + PATH.x1) / 2, 0.01, 0);
   path.receiveShadow = true;
   floor.push(add(path));
   // grass beds either side of the path
-  const grass = new THREE.MeshStandardMaterial({ color: 0x6b8a3a, roughness: 1 });
+  const grass = photo(new THREE.MeshStandardMaterial({ color: 0x6b8a3a, roughness: 1 }), TEX + 'lawn.jpg', { repeat: [8, 2], mirror: true });
   for (const z of [-8, 8]) {
     const bed = new THREE.Mesh(new THREE.PlaneGeometry(30, 7), grass);
     bed.rotation.x = -Math.PI / 2;
@@ -211,12 +220,12 @@ export function buildGrounds(rng: () => number) {
       posts.push(new THREE.Matrix4().compose(p.setY(1), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)), new THREE.Vector3(1, 1, 1)));
     }
     for (const y of [0.55, 1.05, 1.55]) {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, len), sandstone);
+      const bar = new THREE.Mesh(tileUV(new THREE.BoxGeometry(0.12, 0.3, len), len / 1.4, 0.3), sandstone);
       bar.position.copy(a).lerp(b, 0.5).setY(y);
       bar.rotation.y = yaw;
       add(bar);
     }
-    const coping = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, len, 10), sandstone);
+    const coping = new THREE.Mesh(tileUV(new THREE.CylinderGeometry(0.2, 0.2, len, 10), 1, len / 1.4), sandstone);
     coping.rotation.set(Math.PI / 2, 0, 0);
     const holder = new THREE.Group();
     holder.add(coping);
@@ -411,7 +420,7 @@ export function buildGrounds(rng: () => number) {
   }
 
   // trees and palms ringing the sunken courtyard
-  const leaf = std(0x3f6a2a, 0.85);
+  const leaf = photo(std(0x3f6a2a, 0.85), TEX + 'foliage.jpg', { repeat: [3, 2], mirror: true, bump: 3 });
   const treeSpots: [number, number][] = [[-34, -20], [-20, -21], [-6, -21], [10, -20], [40, -20], [50, -16], [-34, 20], [-33, 8], [-33, -8], [14, 40], [36, 42], [50, 30], [50, 12], [-24, 26], [-28, 40]];
   for (const [x, z] of treeSpots) {
     const t = broadTree(rng, leaf);
@@ -427,7 +436,7 @@ export function buildGrounds(rng: () => number) {
   }
 
   // the courtyard sits about 5 m below the town: retaining walls all round, steps to the east
-  const wallMat = std(0xa89778, 0.95);
+  const wallMat = photo(std(0xa89778, 0.95), TEX + 'stucco.jpg', { repeat: [12, 1.5], mirror: true, bump: 1.5 });
   const W = BOUNDS;
   for (const [x, z, w, d] of [
     [(W.x0 + W.x1) / 2, W.z0 - 1, W.x1 - W.x0 + 4, 2],
