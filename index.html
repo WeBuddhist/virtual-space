@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#d8d5c8" />
+    <title>Ritrö — rest a while</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tibetan:wght@400;600&family=Noto+Serif+Tibetan:wght@600&display=swap" rel="stylesheet" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237a1f22'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23e0a526'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <main id="app">
+      <div id="world"></div>
+      <div id="tags" aria-hidden="true"></div>
+
+      <header class="hud hud-left">
+        <button class="pill-btn icon" id="btn-exit" data-i18n-label="exit">
+          <svg viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l-4 4 4 4M10 12h10" /></svg>
+        </button>
+        <button class="pill-btn room-btn" id="btn-room">
+          <strong id="temple-name"></strong>
+          <span id="room-number">1</span><span class="caret">⌄</span>
+        </button>
+        <button class="pill-btn count" id="btn-people"><span id="people-count">01</span>/<span id="people-cap">100</span></button>
+      </header>
+
+      <header class="hud hud-right">
+        <span class="orb" id="orb" role="img"></span>
+        <button class="pill-btn icon" id="btn-sound" data-i18n-label="soundOn">
+          <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="sound-x" d="M16 9l5 6M21 9l-5 6" /><path class="sound-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /></svg>
+        </button>
+        <button class="pill-btn lang" id="btn-lang">བོད</button>
+        <button class="pill-btn icon" id="btn-settings" data-i18n-label="settings">
+          <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>
+        </button>
+      </header>
+      <button class="chip chant-chip" id="btn-chant" data-i18n="listenChant"></button>
+
+      <p class="hint" id="hint" data-i18n="hintDesktop"></p>
+      <button class="chip incense-chip" id="btn-incense" hidden>
+        <svg viewBox="0 0 24 24"><path d="M12 21v-9M9 21h6M12 9c-2-2 2-3 0-6M15 9c-1.5-1.5 1.5-2.5 0-4.5" /></svg>
+        <span data-i18n="incense"></span>
+      </button>
+
+      <nav class="dock" aria-label="practice">
+        <button data-practice="palms"><svg viewBox="0 0 24 24"><path d="M12 3c-2 4-4 8-4 12a4 4 0 0 0 8 0c0-4-2-8-4-12zM12 3v16" /></svg><span data-i18n="palms"></span></button>
+        <button data-practice="bow"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5" /><path d="M5 20c1-5 4-8 7-8s6 3 7 8M8 16h8" /></svg><span class="bow-label" data-i18n="bow"></span></button>
+        <button data-practice="moktak"><svg viewBox="0 0 24 24"><ellipse cx="11" cy="14" rx="7" ry="6" /><path d="M6 14h10M15 8l4-4" /></svg><span data-i18n="moktak"></span></button>
+        <button data-practice="beads"><svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="1.6" /><circle cx="17" cy="6.5" r="1.6" /><circle cx="19" cy="12" r="1.6" /><circle cx="17" cy="17.5" r="1.6" /><circle cx="12" cy="20" r="1.6" /><circle cx="7" cy="17.5" r="1.6" /><circle cx="5" cy="12" r="1.6" /><circle cx="7" cy="6.5" r="1.6" /></svg><span data-i18n="beads"></span></button>
+      </nav>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <div class="practice-layer" id="practice-layer" hidden>
+        <div class="practice-backdrop"></div>
+        <section class="mala" id="mala-host" hidden></section>
+        <section class="woodfish-host" id="woodfish-host" hidden></section>
+      </div>
+
+      <dialog id="dlg-rooms" class="sheet">
+        <header><h2 data-i18n="rooms"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
+        <p class="sub" data-i18n="roomsSub"></p>
+        <div class="row"><span id="room-current"></span><button class="link" id="room-refresh" data-i18n="refresh"></button></div>
+        <div class="room-grid" id="room-grid"></div>
+      </dialog>
+
+      <dialog id="dlg-people" class="sheet">
+        <header><h2 data-i18n="visitors"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
+        <ul class="people" id="people-list"></ul>
+      </dialog>
+
+      <dialog id="dlg-settings" class="sheet">
+        <header><h2 data-i18n="settings"></h2><button class="icon close" data-close data-i18n-label="close">✕</button></header>
+        <h3 data-i18n="mySounds"></h3>
+        <p class="sub" data-i18n="mySoundsSub"></p>
+        <label class="slider"><span><strong data-i18n="ambient"></strong><small data-i18n="ambientSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="ambient" /></label>
+        <label class="slider"><span><strong data-i18n="effects"></strong><small data-i18n="effectsSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="effects" /></label>
+        <label class="slider"><span><strong data-i18n="chanting"></strong><small data-i18n="chantingSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="chant" /></label>
+        <div class="toggle-row"><span><strong data-i18n="background"></strong><small id="bg-desc"></small></span><button class="switch" id="bg-switch" role="switch"></button></div>
+        <div class="toggle-row"><span><strong data-i18n="language"></strong></span>
+          <div class="seg"><button data-lang="en">English</button><button data-lang="bo">བོད་ཡིག</button></div></div>
+        <details><summary data-i18n="controls"></summary><p class="sub" data-i18n="controlsBody"></p></details>
+      </dialog>
+
+      <section class="screen loading" id="loading">
+        <div class="mark"></div>
+        <h1 id="loading-name"></h1>
+        <p data-i18n="openingHall"></p>
+      </section>
+
+      <section class="screen rest" id="rest" hidden>
+        <p data-i18n="restingTitle"></p>
+        <button class="chip" id="btn-resume" data-i18n="continueHere"></button>
+      </section>
+
+      <section class="screen exit" id="exit-screen" hidden>
+        <p class="eyebrow" id="exit-name"></p>
+        <h1 data-i18n="exitTitle"></h1>
+        <p data-i18n="exitBody"></p>
+        <button class="chip" id="btn-stay" data-i18n="stayAgain"></button>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
