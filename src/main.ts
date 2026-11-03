@@ -616,14 +616,37 @@ function myNetPose(): NetPose {
 
 // ---- HUD -----------------------------------------------------------------
 const soundBtn = $('btn-sound');
+// sound is on by default; muting is remembered for the next visit
+const MUTED_KEY = 'webuddhist.muted';
+const rememberMuted = (muted: boolean) => { try { localStorage.setItem(MUTED_KEY, muted ? '1' : '0'); } catch { /* storage unavailable */ } };
+/** the visitor has used the sound button: their choice beats sound-on-by-default */
+let soundChosen = false;
 soundBtn.addEventListener('click', async () => {
+  soundChosen = true;
   try {
     if (audio.enabled) await audio.disable();
     else await audio.enable();
+    rememberMuted(!audio.enabled);
   } catch {
     toast('Web Audio is not supported in this browser.');
   }
 });
+{
+  // browsers only let sound start from a visitor's own touch, click or key, so it starts
+  // on the first one anywhere (the sound button's own click decides for itself)
+  let muted = false;
+  try { muted = localStorage.getItem(MUTED_KEY) === '1'; } catch { /* storage unavailable */ }
+  // not every event may start sound (a lone Shift doesn't; on phones the tap's end does),
+  // so keep listening until it has really started
+  const events = ['pointerdown', 'pointerup', 'keydown', 'touchend'];
+  const stop = () => events.forEach((t) => window.removeEventListener(t, start, true));
+  const start = (e: Event) => {
+    if ((e.target as HTMLElement | null)?.closest?.('#btn-sound')) return;
+    if (audio.enabled || soundChosen) return stop();
+    audio.enable().then(() => { if (audio.enabled) stop(); }).catch(() => {});
+  };
+  if (!muted) events.forEach((t) => window.addEventListener(t, start, true));
+}
 function renderSound() {
   soundBtn.classList.toggle('on', audio.enabled);
   soundBtn.dataset.i18nLabel = audio.enabled ? 'soundOff' : 'soundOn';
