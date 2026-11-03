@@ -5,7 +5,7 @@ import { ROOM_CAPACITY, TEMPLE_IDS, parseRoom, roomId, INSTANCES_PER_TEMPLE } fr
 import { TEMPLES } from './rooms';
 import { activeService, isDay } from './rooms/clock';
 import { buildWorld, type Cushion } from './world';
-import { Avatar, BOW_SECONDS, PALMS_SECONDS, type Pose } from './avatar';
+import { Avatar, BOW_SECONDS, DEFAULT_LOOK, PALMS_SECONDS, type Pose } from './avatar';
 import { Player } from './player';
 import { Net, fetchRoomCounts, type NetPose, type ServerMsg, type Visitor } from './net';
 import { AudioEngine, type Bus } from './audio';
@@ -57,7 +57,7 @@ await Promise.race([
 ]);
 
 const world = buildWorld(renderer, temple);
-const RESIDENTS = temple.residents.map((seat, i) => ({ seat, ...RESIDENT_LOOKS[i % RESIDENT_LOOKS.length] }));
+const RESIDENTS = temple.residents.map((r, i) => ({ ...r, ...RESIDENT_LOOKS[i % RESIDENT_LOOKS.length] }));
 const BURNER = world.site.burner.position;
 const BURNER_STAND = world.site.burner.stand;
 const scene = world.scene;
@@ -142,7 +142,9 @@ function requestSeat(c: Cushion) {
   }
   leavePractice();
   // walk over first; the seat is claimed on arrival so the walk itself doesn't release it
-  const front = c.position.clone().add(new THREE.Vector3(0, 0, 0.55));
+  // approach from the side the seat faces away from
+  const yaw = c.yaw ?? Math.PI;
+  const front = c.position.clone().add(new THREE.Vector3(-Math.sin(yaw) * 0.55, 0, -Math.cos(yaw) * 0.55));
   player.walkTo(front, () => player.walkTo(c.position, () => {
     if (net?.status === 'online') {
       pendingSeat = c;
@@ -156,7 +158,7 @@ let pendingSeat: Cushion | null = null;
 
 function sit(c: Cushion) {
   seat = c.index;
-  player.yaw = Math.PI;
+  player.yaw = c.yaw ?? Math.PI;
   mode = 'kneel';
   me.setPose('kneel');
   updateDock();
@@ -310,13 +312,13 @@ let myName = Math.floor(Math.random() * NAMES.length);
 let myColor = '#bdc5ad';
 makeTag(selfTagId, myName, myColor, true);
 
-// residents kneel on their cushions in every room
+// residents keep their seats in every room, in their own tradition's robes
 const residentAvatars = RESIDENTS.map((r, i) => {
-  const a = new Avatar();
+  const a = new Avatar({ ...DEFAULT_LOOK, ...(r.robe ? { robe: r.robe } : {}), ...(r.shirt ? { shirt: r.shirt } : {}) });
   const c = world.cushions[r.seat];
   a.root.position.copy(c.position);
-  a.root.rotation.y = Math.PI;
-  a.setPose('kneel');
+  a.root.rotation.y = c.yaw ?? Math.PI;
+  a.setPose(r.pose ?? 'kneel');
   scene.add(a.root);
   makeTag(`resident:${i}`, r.name, r.color);
   return a;

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Statue viewer · WeBuddhist Space</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #120d0a; color: #eee; font: 13px system-ui, sans-serif; overflow: hidden; }
+      #ui { position: fixed; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+      #ui button { background: rgba(255,255,255,.1); color: #eee; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+      #ui button[aria-pressed='true'] { background: #d9a12b; color: #222; }
+      #info { position: fixed; left: 12px; bottom: 12px; opacity: .7; }
+    </style>
+  </head>
+  <body>
+    <div id="ui"></div>
+    <div id="info"></div>
+    <script type="module" src="/src/viewer.ts"></script>
+  </body>
+</html>

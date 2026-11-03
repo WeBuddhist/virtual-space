@@ -6,7 +6,7 @@ export type TempleId = (typeof TEMPLE_IDS)[number];
 
 /** cushion count per temple and the cushions held by resident practitioners */
 export const SEATING: Record<TempleId, { cushions: number; residents: number[] }> = {
-  bodhgaya: { cushions: 18, residents: [0, 2, 5, 9] },
+  bodhgaya: { cushions: 18, residents: [4, 7, 10, 13] },
   tibetan: { cushions: 18, residents: [0, 2, 5, 9] },
   theravada: { cushions: 18, residents: [0, 2, 5, 9] },
   mahayana: { cushions: 18, residents: [0, 2, 5, 9] },

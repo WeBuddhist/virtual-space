@@ -25,7 +25,11 @@ export interface StatueDef {
 }
 
 export interface Box2 { x0: number; x1: number; z0: number; z1: number }
-export interface Cushion { index: number; position: THREE.Vector3; mesh: THREE.Mesh }
+/** a seat; `yaw` is the direction a seated visitor faces (avatar forward is +z) */
+export interface Cushion { index: number; position: THREE.Vector3; mesh: THREE.Mesh; yaw?: number }
+
+/** a resident practitioner who stays on one seat */
+export interface Resident { seat: number; robe?: number; shirt?: number; pose?: 'kneel' | 'bow' | 'beads' }
 
 /** everything a temple's buildings contribute to the shared world */
 export interface Site {
@@ -69,8 +73,8 @@ export interface TempleDef {
   services: { kind: 'dawn' | 'evening'; hour: number; minute: number }[];
   /** IANA zone for day/night and service times */
   timeZone: string;
-  /** cushion indices held by resident practitioners */
-  residents: number[];
+  /** resident practitioners; their seats must match SEATING in shared/rooms.ts */
+  residents: Resident[];
   sky?: { dayTop: number; dayBottom: number; fog: number };
   buildSite(ctx: SiteContext): Site;
 }

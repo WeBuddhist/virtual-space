@@ -1,6 +1,9 @@
 import { SEATING, TEMPLE_IDS, type TempleId } from '../../shared/rooms';
+import { bodhgayaSite } from './sites/bodhgaya';
 import { genericSite } from './sites/generic';
-import type { TempleDef } from './types';
+import type { Resident, TempleDef } from './types';
+
+const seated = (seats: number[]): Resident[] => seats.map((seat) => ({ seat }));
 
 // The temple registry. Each entry is one kind of room; bespoke sites replace
 // `genericSite` as each temple is researched and built (see the temple-room skill).
@@ -25,9 +28,15 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     bowStyles: ['tibetan-prostration', 'five-point', 'east-asian-bow', 'standing-bow'],
     services: [{ kind: 'dawn', hour: 5, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
     timeZone: 'Asia/Kolkata',
-    residents: SEATING.bodhgaya.residents,
-    sky: { dayTop: 0x8fb4d9, dayBottom: 0xf0e2c8, fog: 0xe3d8c2 },
-    buildSite: genericSite,
+    // monks of several traditions: Theravada saffron, East Asian grey, Tibetan maroon prostrating
+    residents: [
+      { seat: 4, robe: 0xc98a3a, shirt: 0xd99a42, pose: 'kneel' },
+      { seat: 7, robe: 0x6e6c66, shirt: 0x8d8b84, pose: 'kneel' },
+      { seat: 10, robe: 0x7a1f2b, shirt: 0xd9a12b, pose: 'bow' },
+      { seat: 13, robe: 0x7a1f2b, shirt: 0xd9a12b, pose: 'bow' },
+    ],
+    sky: { dayTop: 0xa9c8e6, dayBottom: 0xf0e2c8, fog: 0xe6d9c0 },
+    buildSite: bodhgayaSite,
   },
   tibetan: {
     id: 'tibetan',
@@ -48,7 +57,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     bowStyles: ['tibetan-prostration'],
     services: [{ kind: 'dawn', hour: 5, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
     timeZone: 'Asia/Kolkata',
-    residents: SEATING.tibetan.residents,
+    residents: seated(SEATING.tibetan.residents),
     buildSite: genericSite,
   },
   theravada: {
@@ -68,7 +77,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     bowStyles: ['five-point'],
     services: [{ kind: 'dawn', hour: 5, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
     timeZone: 'Asia/Bangkok',
-    residents: SEATING.theravada.residents,
+    residents: seated(SEATING.theravada.residents),
     buildSite: genericSite,
   },
   mahayana: {
@@ -88,7 +97,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     bowStyles: ['east-asian-bow', 'standing-bow'],
     services: [{ kind: 'dawn', hour: 4, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
     timeZone: 'Asia/Seoul',
-    residents: SEATING.mahayana.residents,
+    residents: seated(SEATING.mahayana.residents),
     buildSite: genericSite,
   },
 };
