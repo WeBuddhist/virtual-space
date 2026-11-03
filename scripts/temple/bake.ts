@@ -132,7 +132,8 @@ for (const v of views) writeFileSync(join(outDir, `${v.name}.png`), render(out, 
 
 const stats = {
   buildSeconds: +(buildMs / 1000).toFixed(2),
-  triangles, meshes, budget: el.budget, overBudget: triangles > el.budget,
+  // a module with several types (stupas) has its budget per type
+  triangles, meshes, budget: el.budget * Math.max(1, types), overBudget: triangles > el.budget * Math.max(1, types),
   bounds: { min: box.min.toArray().map((v) => +v.toFixed(2)), max: box.max.toArray().map((v) => +v.toFixed(2)) },
   materials: mats.map((m) => m.name),
   keepClearViolations: Object.fromEntries(clearHits),

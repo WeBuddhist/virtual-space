@@ -1,6 +1,8 @@
 // Kimi K3.1 Pro builds one Bodh Gaya element as three.js code over several rounds,
 // seeing CPU renders of each attempt next to the reference photos.
-//   node --experimental-strip-types scripts/temple/kimi.ts <element-id> [--rounds=4]
+//   node --experimental-strip-types scripts/temple/kimi.ts <element-id> [--rounds=4] [--continue]
+// --continue starts from the element's current module in src/ (its renders and code go
+// to the model first), for extra rounds on the elements that matter most.
 // Rounds and renders go to reference/bodhgaya/temple/<id>/ (gitignored); the best round
 // is written to src/rooms/sites/bodhgaya/kimi/<id>.ts. Model-written code is baked in a
 // child Node process under the permission model (read the repo, write only its dir).
@@ -135,6 +137,23 @@ const turns: Turn[] = [{
   role: 'user', images: refs,
   text: `Reference photographs 01–${String(refs.length).padStart(2, '0')} of the real ${el.title} are attached. Study them closely first, then write the module. Round 1 of ${rounds}.`,
 }];
+
+// --continue: show the model its current best module and how it renders, then refine it
+const current = join(ROOT, 'src/rooms/sites/bodhgaya/kimi', `${id}.ts`);
+if (process.argv.includes('--continue') && existsSync(current)) {
+  const src = readFileSync(current, 'utf8').replace(/^\/\/ @ts-nocheck.*\n/, '');
+  const modFile = join(WORK, 'start.ts');
+  writeFileSync(modFile, forNode(src));
+  const startDir = join(WORK, 'start');
+  const b = bake(modFile, startDir);
+  if (b.ok) {
+    turns[0] = {
+      role: 'user', images: [...refs, ...VIEWS.map((v) => renderImg(startDir, v))],
+      text: `Reference photographs 01–${String(refs.length).padStart(2, '0')} of the real ${el.title} are attached, then renders of the current module below (stats: ${JSON.stringify(b.stats)}). Compare them hard against the photographs, list the biggest differences, and output the complete improved module. Round 1 of ${rounds}.\n\nCurrent module:\n\`\`\`ts\n${src}\`\`\``,
+    };
+    log('continuing from the current module');
+  }
+}
 
 let best: { round: number; src: string; score: number } | undefined;
 for (let round = 1; round <= rounds; round++) {
