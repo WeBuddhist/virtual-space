@@ -4,6 +4,7 @@ import { applyDom, getLang, onLangChange, pick, setLang, t, type Key } from './i
 import { ROOM_CAPACITY, TEMPLE_IDS, parseRoom, roomId, INSTANCES_PER_TEMPLE } from '../shared/rooms';
 import { TEMPLES } from './rooms';
 import { activeService, isDay } from './rooms/clock';
+import type { BowStyle } from './rooms/types';
 import { buildWorld, type Cushion } from './world';
 import { Avatar, BOW_SECONDS, DEFAULT_LOOK, PALMS_SECONDS, type Pose } from './avatar';
 import { Player } from './player';
@@ -82,6 +83,16 @@ let bowTime = 0;
 // each tradition bows its own way; the temple's first style is the default
 let bowStyle = temple.bowStyles[0];
 me.setBowStyle(bowStyle);
+const bowSelect = $<HTMLSelectElement>('bow-select');
+$('bow-row').hidden = temple.bowStyles.length < 2;
+bowSelect.addEventListener('change', () => {
+  bowStyle = bowSelect.value as BowStyle;
+  me.setBowStyle(bowStyle);
+  if (mode === 'bow') net?.act('bow', bowStyle);
+});
+function renderBowStyles() {
+  bowSelect.replaceChildren(...temple.bowStyles.map((s) => new Option(t(s), s, false, s === bowStyle)));
+}
 
 const player = new Player(me, camera, world, renderer.domElement, {
   onCushion: (c) => requestSeat(c),
@@ -127,7 +138,7 @@ function startBow() {
   bowTime = 0;
   bowCycle = -1;
   me.setPose('bow');
-  net?.act('bow');
+  net?.act('bow', bowStyle);
   updateDock();
 }
 
@@ -400,7 +411,7 @@ function onMessage(m: ServerMsg) {
       const r = remotes.get(m.id);
       if (!r) break;
       if (m.act === 'hello') { r.palmsUntil = performance.now() + PALMS_SECONDS * 1000; r.bowing = false; bubble(m.id, '🙏'); }
-      if (m.act === 'bow') r.bowing = true;
+      if (m.act === 'bow') { r.bowing = true; if (m.style) r.avatar.setBowStyle(m.style); }
       if (m.act === 'stand') r.bowing = false;
       if (m.act === 'incense') world.addIncense();
       if (m.act === 'bead') bubble(m.id, '📿');
@@ -514,6 +525,7 @@ function renderLang() {
   }
   mala.renderCount();
   instruments.render();
+  renderBowStyles();
   updateDock();
   renderSound();
 }

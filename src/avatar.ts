@@ -398,6 +398,8 @@ function bodyPieces(seg: Map<BoneName, [THREE.Vector3, THREE.Vector3]>): Piece[]
 
 // ---- the avatar ------------------------------------------------------------------------
 
+let geometryCache: Map<string, THREE.BufferGeometry> | null = null;
+
 export class Avatar {
   readonly root = new THREE.Group();
   private bones: Map<BoneName, THREE.Bone>;
@@ -420,17 +422,19 @@ export class Avatar {
     // world matrices must be current before the skeleton computes its bind inverses
     const seg = segments(this.bones);
     const skeleton = new THREE.Skeleton(BONES.map((b) => this.bones.get(b)!));
-    const pieces = bodyPieces(seg);
     const mats = {
       skin: new THREE.MeshStandardMaterial({ color: look.skin, roughness: 0.65 }),
       robe: new THREE.MeshStandardMaterial({ color: look.robe, roughness: 0.92, side: THREE.DoubleSide }),
       shirt: new THREE.MeshStandardMaterial({ color: look.shirt, roughness: 0.85 }),
       dark: new THREE.MeshStandardMaterial({ color: 0x241a16, roughness: 0.45 }),
     };
+    // every avatar shares one body geometry per material; only materials differ
+    geometryCache ??= new Map((Object.keys(mats) as (keyof typeof mats)[]).map((key) => {
+      const geos = bodyPieces(seg).filter((p) => p.mat === key).map((p) => skin(p, seg));
+      return [key, mergeGeometries(geos)!];
+    }));
     for (const key of Object.keys(mats) as (keyof typeof mats)[]) {
-      const geos = pieces.filter((p) => p.mat === key).map((p) => skin(p, seg));
-      if (!geos.length) continue;
-      const geo = mergeGeometries(geos)!;
+      const geo = geometryCache.get(key)!;
       const mesh = new THREE.SkinnedMesh(geo, mats[key]);
       mesh.castShadow = true;
       mesh.frustumCulled = false;
@@ -499,7 +503,6 @@ export class Avatar {
   dispose() {
     this.mixer.stopAllAction();
     for (const m of this.meshes) {
-      m.geometry.dispose();
       (m.material as THREE.Material).dispose();
     }
   }

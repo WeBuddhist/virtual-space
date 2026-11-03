@@ -1,3 +1,5 @@
+import type { BowStyle } from './rooms/types';
+
 // Presence client. Message shapes follow the observed sansatemple protocol
 // (snapshot / move / seat / leave + practice events), carried as JSON.
 
@@ -18,7 +20,7 @@ export type ServerMsg =
   | { type: 'join'; visitor: Visitor }
   | { type: 'leave'; id: string }
   | { type: 'move'; id: string; x: number; z: number; yaw: number; pose: NetPose }
-  | { type: 'act'; id: string; act: Act }
+  | { type: 'act'; id: string; act: Act; style?: BowStyle }
   | { type: 'seat'; id: string; seat: number | null }
   | { type: 'seat-granted'; seat: number }
   | { type: 'seat-unavailable' }
@@ -108,7 +110,7 @@ export class Net {
     }, 100);
   }
 
-  act(act: Act) { this.send({ type: 'act', act }); }
+  act(act: Act, style?: BowStyle) { this.send({ type: 'act', act, style }); }
   seat(seat: number) { this.send({ type: 'seat', seat }); }
   stand() { this.send({ type: 'stand' }); }
 

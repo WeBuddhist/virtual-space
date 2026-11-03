@@ -15,6 +15,7 @@ const NAME_COUNT = 24;
 const COLORS = ['#bdc5ad', '#cbbdab', '#b9c8c2', '#c8bd9c', '#c9b3b8', '#b4bfd0', '#d1c3a3', '#b8c9b0'];
 const POSES = new Set(['walk', 'kneel', 'beads', 'idle']);
 const ACTS = new Set(['hello', 'bow', 'stand', 'bead', 'incense']);
+const BOW_STYLES = new Set(['tibetan-prostration', 'five-point', 'east-asian-bow', 'standing-bow']);
 const ROOM_IDS = ALL_ROOM_IDS;
 const ROOM_SET = new Set(ROOM_IDS);
 const DEFAULT_ROOM = ROOM_IDS[0];
@@ -127,7 +128,7 @@ export class Room extends DurableObject<Env> {
         break;
       }
       case 'act':
-        if (ACTS.has(m.act)) this.broadcast({ type: 'act', id: v.id, act: m.act }, ws);
+        if (ACTS.has(m.act)) this.broadcast({ type: 'act', id: v.id, act: m.act, style: BOW_STYLES.has(m.style) ? m.style : undefined }, ws);
         break;
       case 'seat': {
         const seat = m.seat;
