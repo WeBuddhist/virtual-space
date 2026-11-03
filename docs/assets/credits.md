@@ -26,3 +26,13 @@ To rebuild the clips, download the `.glb` files listed in `scripts/mocap/build.t
   `scripts/statues/spz.ts` (Spark's SPZ encoder). It is drawn with
   [Spark](https://sparkjs.dev) (MIT). The sculpted statue from `scripts/statues/build.ts` is
   the fallback if the splat cannot load.
+
+## Instrument sounds
+
+The singing bowl (struck and sung), drilbu bell, damaru, drum, cymbals, gong, temple
+bell, wood fish and dharma drum are real recordings from [Freesound](https://freesound.org)
+under CC0 1.0, CC BY 3.0 and CC BY 4.0, trimmed and loudness-normalised. Authors,
+licenses, source pages and the edits made are listed in
+[`public/audio/instruments/SOURCES.md`](../../public/audio/instruments/SOURCES.md), which
+ships with the site and is linked from the settings sheet. The synthesized voices in
+`src/audio.ts` remain the fallback.

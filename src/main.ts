@@ -116,7 +116,7 @@ player.onEyes = (on) => {
   $('btn-eyes').setAttribute('aria-pressed', String(on));
 };
 $('btn-eyes').addEventListener('click', () => player.setEyes(!player.eyes));
-if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings } });
+if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings, audio } });
 
 function leavePractice() {
   if (mode === 'bow') stopBow(false);

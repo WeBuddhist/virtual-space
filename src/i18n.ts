@@ -36,6 +36,7 @@ const STRINGS = {
   moktak: { en: 'Wood fish', bo: 'ཤིང་ཉ།' },
   beads: { en: 'Mala', bo: 'ཕྲེང་བ།' },
   incense: { en: 'Offer incense', bo: 'སྤོས་འབུལ།' },
+  soundCredits: { en: 'Instrument recordings: sources and licenses', bo: 'རོལ་ཆའི་སྒྲ་ཕབ་ཀྱི་འབྱུང་ཁུངས་དང་ཆོག་མཆན།' },
   offer: { en: 'Offer', bo: 'མཆོད་པ།' },
   offerTitle: { en: 'Make an offering', bo: 'མཆོད་པ་འབུལ།' },
   offerSub: { en: 'Flowers fall over the nearest shrine, and everyone in the room sees them.', bo: 'མེ་ཏོག་ཉེ་ཤོས་ཀྱི་མཆོད་གནས་སུ་འབབ། ཁང་མིག་འདིའི་མི་ཚང་མས་མཐོང་།' },

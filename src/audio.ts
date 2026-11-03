@@ -1,6 +1,11 @@
 import { EMPTY_MANIFEST, normalizeManifest, type AudioManifest, type Track } from '../shared/audio';
 import type { InstrumentId } from './rooms/types';
 
+/** instruments (and the sung bowl) with a shared real recording in /audio/instruments/ */
+const SHARED_SAMPLES = ['singing-bowl', 'singing-bowl-rub', 'bell-dorje', 'damaru', 'nga-drum', 'rolmo', 'gong', 'temple-bell', 'woodfish', 'dharma-drum'];
+/** the short drum and wood strokes were limited to keep their peaks; lift them to sit with the rest */
+const SHARED_GAIN: Record<string, number> = { woodfish: 1.3, 'nga-drum': 1.15, 'dharma-drum': 1.1 };
+
 // Sounds come from the temple's audio manifest (recordings added in the local
 // audio studio). Anything not provided there is synthesized with Web Audio.
 
@@ -132,10 +137,15 @@ export class AudioEngine {
   private async decodeSamples() {
     if (!this.ctx) return;
     this.samples.clear();
-    await Promise.all(Object.entries(this.manifest.instruments).map(async ([id, t]) => {
+    // a temple's own recording if its manifest has one, else the shared real recording
+    // (see public/audio/instruments/SOURCES.md); the synthesized voice is the last resort
+    const urls = new Map<string, string>(SHARED_SAMPLES.map((id) => [id, `/audio/instruments/${id}.mp3`]));
+    for (const [id, t] of Object.entries(this.manifest.instruments)) if (t) urls.set(id, this.base + encodeURIComponent(t.src));
+    await Promise.all([...urls].map(async ([id, url]) => {
       try {
-        const buf = await (await fetch(this.base + encodeURIComponent(t!.src))).arrayBuffer();
-        this.samples.set(id, await this.ctx!.decodeAudioData(buf));
+        const res = await fetch(url);
+        if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('audio')) return;
+        this.samples.set(id, await this.ctx!.decodeAudioData(await res.arrayBuffer()));
       } catch { /* fall back to the synthesized instrument */ }
     }));
   }
@@ -263,7 +273,8 @@ export class AudioEngine {
       const src = ctx.createBufferSource();
       src.buffer = sample;
       const g = ctx.createGain();
-      g.gain.value = (this.manifest.instruments[id]?.volume ?? 0.8) * velocity;
+      const own = this.manifest.instruments[id];
+      g.gain.value = (own?.volume ?? 0.8 * (SHARED_GAIN[id] ?? 1)) * velocity;
       src.connect(g).connect(this.buses.effects);
       src.start(t);
       return;
@@ -321,10 +332,26 @@ export class AudioEngine {
   }
 
   private rub?: { gains: GainNode[]; oscs: OscillatorNode[] };
+  private rubLoop?: GainNode;
   /** rubbing the rim of a singing bowl: intensity 0..1 from the circling speed */
   bowlRub(intensity: number) {
     if (!this.effectsAudible) return;
     const ctx = this.ctx!;
+    const sung = this.samples.get('singing-bowl-rub');
+    if (sung) {
+      // a real bowl sung with a mallet, looped, swelling with the circling
+      if (!this.rubLoop) {
+        const src = ctx.createBufferSource();
+        src.buffer = sung;
+        src.loop = true;
+        this.rubLoop = ctx.createGain();
+        this.rubLoop.gain.value = 0;
+        src.connect(this.rubLoop).connect(this.buses.effects);
+        src.start();
+      }
+      this.rubLoop.gain.setTargetAtTime(0.9 * Math.min(1, intensity), ctx.currentTime, 0.3);
+      return;
+    }
     if (!this.rub) {
       const parts: [number, number][] = [[196, 0.22], [196 * 2.76, 0.08], [196 * 5.4, 0.03]];
       const gains: GainNode[] = [], oscs: OscillatorNode[] = [];
