@@ -125,6 +125,8 @@ function crown(scale: number) {
 
 export function buildTower() {
   const group = new THREE.Group();
+  /** tag what was added since `from` as part of an element the Kimi build can replace */
+  const mark = (from: number, part: 'tower' | 'portico') => group.children.slice(from).forEach((o) => { o.userData.kimi ??= part; });
   const T = TEMPLE;
   const cx = (T.x0 + T.x1) / 2;
   const tex = nicheTexture(6, 8);
@@ -142,10 +144,13 @@ export function buildTower() {
     group.add(m);
   };
   const S = SANCTUM;
+  const masses = group.children.length;
   slab(T.x0, T.x1, T.z0, -S.halfW, 0, T.baseH); // north mass
   slab(T.x0, T.x1, S.halfW, T.z1, 0, T.baseH); // south mass
   slab(T.x0, S.x0, -S.halfW, S.halfW, 0, T.baseH); // west mass behind the shrine
   slab(S.x0, T.x1, -S.halfW, S.halfW, S.ceiling, T.baseH); // above the sanctum and vestibule
+  mark(masses, 'tower');
+  // (the vestibule and the sanctum lining stay whichever exterior is shown)
   // the vestibule: a narrow passage from the door to the sanctum
   const soot = new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 1 });
   slab(S.x1, T.x1, -S.halfW, -S.door, 0, S.ceiling, soot);
@@ -156,6 +161,7 @@ export function buildTower() {
   lining.position.set((S.x0 + S.x1) / 2, S.ceiling / 2, 0);
   lining.receiveShadow = true;
   group.add(lining);
+  const exterior = group.children.length;
   const bandTex = nicheTexture(1, 8);
   const bandMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: bandTex.map, bumpMap: bandTex.bump, bumpScale: 3, roughness: 0.95 });
   bandTex.map.repeat.set(2, 1);
@@ -242,7 +248,10 @@ export function buildTower() {
     group.add(c);
   }
 
+  mark(exterior, 'tower');
+
   // east porch with its doorway
+  const porch = group.children.length;
   const porchMat = photo(new THREE.MeshStandardMaterial({ color: 0xbfa985, roughness: 0.9 }), TEX + 'stucco.jpg', { mirror: true, bump: 1.5 });
   const piece = (w: number, h: number, d: number, x: number, y: number, z: number) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), porchMat);
@@ -267,6 +276,8 @@ export function buildTower() {
     const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(4.15, 6, -2.6 + i * 1.73), new THREE.Vector3(4.2, 5.4, -1.73 + i * 1.73), new THREE.Vector3(4.15, 6, -0.87 + i * 1.73)]);
     group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.08, 6), marigold));
   }
+
+  mark(porch, 'portico');
 
   // night: floodlights from the courtyard washing the east face
   const floods: THREE.SpotLight[] = [];

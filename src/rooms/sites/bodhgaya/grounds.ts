@@ -187,7 +187,11 @@ export function buildGrounds(rng: () => number) {
     floor.push(add(bed));
   }
 
+  /** tag what was added since `from` as part of an element the Kimi build can replace */
+  const mark = (from: number, part: string) => group.children.slice(from).forEach((o) => { o.userData.kimi ??= part; });
+
   // the stone gateway on the path
+  const gate = group.children.length;
   const gx = 16;
   for (const z of [-PATH.halfW - 0.5, PATH.halfW + 0.5]) {
     const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 7.2, 0.9), sandstone);
@@ -204,7 +208,10 @@ export function buildGrounds(rng: () => number) {
   lintel.castShadow = true;
   add(lintel);
 
+  mark(gate, 'torana');
+
   // Sunga-style stone railing around the temple and tree: posts, three crossbars, rounded coping
+  const railing = group.children.length;
   const sides: [THREE.Vector3, THREE.Vector3][] = [
     [new THREE.Vector3(RAIL.x0, 0, RAIL.z0), new THREE.Vector3(RAIL.x1, 0, RAIL.z0)],
     [new THREE.Vector3(RAIL.x0, 0, RAIL.z1), new THREE.Vector3(RAIL.x1, 0, RAIL.z1)],
@@ -238,6 +245,8 @@ export function buildGrounds(rng: () => number) {
     const minX = Math.min(a.x, b.x), maxX = Math.max(a.x, b.x), minZ = Math.min(a.z, b.z), maxZ = Math.max(a.z, b.z);
     colliders.push({ x0: minX - 0.25, x1: maxX + 0.25, z0: minZ - 0.25, z1: maxZ + 0.25 });
   }
+  mark(railing, 'railing');
+
   // marigold garlands swagged between the posts either side of the gate, and khatas tied on
   const marigold = std(0xf08a12, 0.85), yellow = std(0xf2c12e, 0.85), khata = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.8, side: THREE.DoubleSide });
   for (const [za, zb] of [[-RAIL.gate, RAIL.z0], [RAIL.gate, RAIL.z1]]) {
@@ -256,8 +265,10 @@ export function buildGrounds(rng: () => number) {
   posts.forEach((m, i) => postMesh.setMatrixAt(i, m));
   postMesh.castShadow = true;
   add(postMesh);
+  postMesh.userData.kimi = 'railing';
 
   // the Jewel Walk along the north wall: a raised platform with 18 lotus blossoms
+  const jewel = group.children.length;
   const walk = new THREE.Mesh(new THREE.BoxGeometry(16, 1, 1.1), buff);
   walk.position.set(TEMPLE.x0 + 8, 0.5, -10.5);
   add(walk);
@@ -268,6 +279,8 @@ export function buildGrounds(rng: () => number) {
     l.position.set(TEMPLE.x0 + 0.5 + i * 0.88, 1.06, -10.5);
     add(l);
   }
+
+  mark(jewel, 'jewelwalk');
 
   // votive stupas: a field south of the temple and some along the path
   const stupaMat = std(0x5a554f, 0.9);
@@ -281,6 +294,7 @@ export function buildGrounds(rng: () => number) {
   });
   stupas.castShadow = true;
   add(stupas);
+  stupas.userData.kimi = 'stupas';
 
   // Mucalinda lotus pond with the naga-sheltered Buddha in the middle
   const P = { x: -2, z: 38, w: 26, d: 11 };
@@ -401,6 +415,7 @@ export function buildGrounds(rng: () => number) {
   const chaitya = whiteChaitya();
   chaitya.position.set(26, 0, -10);
   add(chaitya);
+  chaitya.userData.kimi = 'animesh';
   colliders.push({ x0: 23.7, x1: 28.3, z0: -12.3, z1: -7.7 });
 
   // lamp posts along the path
@@ -475,6 +490,8 @@ export function buildGrounds(rng: () => number) {
 
   return {
     group, floor, colliders, boards,
+    /** where the votive stupas stand: x, z and scale of the 1.6 m stupa */
+    stupaSpots,
     burner,
     flags: group.children.filter((o) => o.userData.sway !== undefined),
     update(night: number, elapsed: number) {
