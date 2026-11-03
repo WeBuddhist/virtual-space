@@ -4,11 +4,11 @@
 export type Lang = 'en' | 'bo';
 
 const STRINGS = {
-  title: { en: 'WeBuddhist Space — rest a while', bo: 'WeBuddhist Space · ཅུང་ཙམ་ངལ་གསོ།' },
+  title: { en: 'WeBuddhist Space', bo: 'WeBuddhist Space' },
   brand: { en: 'WeBuddhist Space', bo: 'WeBuddhist Space' },
   instruments: { en: 'Instruments', bo: 'རོལ་ཆ།' },
-  tapHint: { en: 'Tap to play · Space to strike', bo: 'མནན་ནས་རྡུང་། · Space ཡིས་རྡུང་།' },
-  bowlHint: { en: 'Tap to strike · circle the rim to make it sing', bo: 'མནན་ནས་རྡུང་། · ཁ་ཟུར་ལ་བསྐོར་ན་སྒྲ་སྒྲོག' },
+  tapHint: { en: 'Tap the instrument, or press Space', bo: 'མནན་ནས་རྡུང་། Space ཡིས་ཀྱང་རྡུང་ཆོག' },
+  bowlHint: { en: 'Tap to strike, or circle the rim to make it sing', bo: 'མནན་ནས་རྡུང་། ཁ་ཟུར་ལ་བསྐོར་ན་སྒྲ་སྒྲོག' },
   bowStyle: { en: 'Way of bowing', bo: 'ཕྱག་འཚལ་སྟངས།' },
   'tibetan-prostration': { en: 'Full prostration', bo: 'རྐྱང་ཕྱག' },
   'five-point': { en: 'Five-point bow', bo: 'ཡན་ལག་ལྔའི་ཕྱག' },
@@ -25,8 +25,8 @@ const STRINGS = {
   continueHere: { en: 'Continue resting here', bo: 'འདིར་མུ་མཐུད་ནས་ངལ་གསོ།' },
   enter: { en: 'Enter', bo: 'ནང་དུ་ཕེབས།' },
 
-  hintDesktop: { en: 'Click the floor · drag to look around · wheel to zoom', bo: 'ས་ངོས་ལ་མནན་ནས་འགྲོ། · འཐེན་ནས་ཁོར་ཡུག་ལྟ། · འཁོར་ལོས་ཆེ་ཆུང་།' },
-  hintTouch: { en: 'Tap to move · swipe to look around · pinch to zoom', bo: 'མནན་ནས་འགྲོ། · ཤུད་ནས་ལྟ། · སོར་མོ་གཉིས་ཀྱིས་ཆེ་ཆུང་།' },
+  hintDesktop: { en: 'Click the ground to walk. Drag to look around, scroll to zoom.', bo: 'ས་ངོས་ལ་མནན་ནས་འགྲོ། འཐེན་ནས་ཁོར་ཡུག་ལྟ། འཁོར་ལོས་ཆེ་ཆུང་།' },
+  hintTouch: { en: 'Tap the ground to walk. Swipe to look around, pinch to zoom.', bo: 'མནན་ནས་འགྲོ། ཤུད་ནས་ལྟ། སོར་མོ་གཉིས་ཀྱིས་ཆེ་ཆུང་།' },
   hintBowing: { en: 'Keep looking around while you wait, or stop', bo: 'སྒུག་རིང་ཁོར་ཡུག་ལ་ལྟ་ཆོག  ཡང་ན་མཚམས་འཇོག' },
 
   palms: { en: 'Palms', bo: 'ཐལ་མོ།' },
@@ -62,13 +62,13 @@ const STRINGS = {
   language: { en: 'Language', bo: 'སྐད་ཡིག' },
   controls: { en: 'How to move', bo: 'འགུལ་སྟངས།' },
   controlsBody: {
-    en: 'Click the floor · WASD · arrow keys to walk<br>Drag to look around · wheel to zoom<br>1 · E · Space prostrate/stop · 2 mala · 3 palms · 5 wood fish',
-    bo: 'ས་ངོས་མནན། · WASD · མདའ་རྟགས་ཀྱིས་འགྲོ།<br>འཐེན་ནས་ལྟ། · འཁོར་ལོས་ཆེ་ཆུང་།<br>1 · E · Space ཕྱག་འཚལ། · 2 ཕྲེང་བ། · 3 ཐལ་མོ། · 5 ཤིང་ཉ།',
+    en: 'Walk by clicking the ground, or with WASD and the arrow keys.<br>Drag to look around and scroll to zoom.<br>Keys: 1 or Space to prostrate, 2 for the mala, 3 for palms together, 5 for instruments.',
+    bo: 'ས་ངོས་མནན་ནམ། WASD དང་མདའ་རྟགས་ཀྱིས་འགྲོ།<br>འཐེན་ནས་ལྟ། འཁོར་ལོས་ཆེ་ཆུང་།<br>1 ཡང་ན་ Space ཕྱག་འཚལ། 2 ཕྲེང་བ། 3 ཐལ་མོ། 5 རོལ་ཆ།',
   },
 
   room: { en: 'Room', bo: 'ཁང་མིག' },
-  rooms: { en: 'Temple rooms', bo: 'ལྷ་ཁང་གི་ཁང་མིག' },
-  roomsSub: { en: 'Every room has the same temple.', bo: 'ཁང་མིག་ཚང་མར་ལྷ་ཁང་གཅིག་པ་ཡོད།' },
+  rooms: { en: 'Temples and rooms', bo: 'ལྷ་ཁང་དང་ཁང་མིག' },
+  roomsSub: { en: 'Each temple has several rooms, so a busy temple never feels crowded.', bo: 'ལྷ་ཁང་རེར་ཁང་མིག་མང་པོ་ཡོད།' },
   current: { en: 'Current', bo: 'ད་ལྟ།' },
   full: { en: 'Full', bo: 'ཁེངས་ཟིན།' },
   checking: { en: 'Checking', bo: 'བརྟག་བཞིན།' },

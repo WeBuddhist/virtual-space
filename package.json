@@ -9,13 +9,15 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
     "deploy": "npm run build && wrangler deploy",
     "preview": "npm run build && wrangler dev",
-    "studio": "vite --open /__studio"
+    "studio": "vite --open /__studio",
+    "statues": "node --experimental-strip-types --no-warnings scripts/statues/build.ts"
   },
   "dependencies": {
     "three": "^0.180.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261103.1",
+    "@gltf-transform/cli": "^4.5.1",
     "@types/three": "^0.180.0",
     "concurrently": "^9.2.5",
     "typescript": "^5.9.3",

@@ -1,6 +1,7 @@
 // Bake the main statue of each temple to public/models/statues/<id>.glb.
 //   node --experimental-strip-types scripts/statues/build.ts [id…] [--cell=0.006]
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { MAT, faceUV, seatUV, seatedBuddha, type BuddhaOptions } from './buddha.ts';
 import { meshShape, toGLB, type MaterialDef } from './mesh.ts';
 
@@ -64,7 +65,11 @@ for (const id of ids.length ? ids : Object.keys(PRESETS)) {
   const { body, head } = seatedBuddha(preset.options);
   const parts = [...meshShape(body, cell, [{ material: MAT.seat, fn: seatUV }]), ...meshShape(head, cell * 0.45, [{ material: MAT.face, fn: faceUV }])];
   const glb = toGLB(parts, materials(preset), `statue-${id}`);
-  writeFileSync(`public/models/statues/${id}.glb`, glb);
+  // quantize and meshopt-compress for the web (about 4.5x smaller)
+  const raw = `public/models/statues/${id}.raw.glb`;
+  writeFileSync(raw, glb);
+  execFileSync('npx', ['gltf-transform', 'meshopt', raw, `public/models/statues/${id}.glb`, '--level', 'medium'], { stdio: 'ignore' });
+  rmSync(raw);
   const verts = parts.reduce((n, p) => n + p.positions.length / 3, 0);
-  console.log(`${id}: ${verts} vertices, ${(glb.length / 1e6).toFixed(1)} MB, ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+  console.log(`${id}: ${verts} vertices, ${(glb.length / 1e6).toFixed(1)} MB raw, ${((performance.now() - t0) / 1000).toFixed(1)}s`);
 }

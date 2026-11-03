@@ -35,7 +35,7 @@ if (!parseRoom(room)) room = roomId('bodhgaya');
 const temple = TEMPLES[parseRoom(room)!.temple];
 const roomLabel = (id: string) => {
   const r = parseRoom(id)!;
-  return `${pick(TEMPLES[r.temple].name)} · ${r.n}`;
+  return `${pick(TEMPLES[r.temple].name)}, ${t('room')} ${r.n}`;
 };
 
 // ---- renderer and world -------------------------------------------------
@@ -50,6 +50,7 @@ const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 900);
 
 applyDom();
 $('temple-name').textContent = pick(temple.name);
+$('temple-place').textContent = pick(temple.place);
 $('loading-name').textContent = pick(temple.name);
 await Promise.race([
   Promise.all([document.fonts.load('600 48px "Noto Serif Tibetan"'), document.fonts.load('16px "Noto Sans Tibetan"')]),
@@ -502,6 +503,7 @@ function renderLang() {
   langBtn.textContent = getLang() === 'en' ? 'བོད' : 'EN';
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === getLang())));
   $('temple-name').textContent = pick(temple.name);
+  $('temple-place').textContent = pick(temple.place);
   for (const [, el] of tags) {
     el.querySelector('span')!.textContent = pick(NAMES[Number(el.dataset.name) % NAMES.length]);
     if (el.classList.contains('me')) el.querySelector('i')!.textContent = t('me').replace('།', '');
@@ -534,7 +536,7 @@ $('btn-people').addEventListener('click', () => {
     const li = document.createElement('li');
     li.innerHTML = '<i></i><span></span>';
     li.querySelector('i')!.style.setProperty('--dot', color);
-    li.querySelector('span')!.textContent = pick(NAMES[name % NAMES.length]) + (isMe ? ` · ${t('me')}` : '');
+    li.querySelector('span')!.textContent = pick(NAMES[name % NAMES.length]) + (isMe ? ` (${t('me')})` : '');
     list.append(li);
   }
   dlgPeople.showModal();
@@ -544,7 +546,7 @@ $('btn-room').addEventListener('click', () => { renderRooms(null); dlgRooms.show
 $('room-refresh').addEventListener('click', refreshRooms);
 async function refreshRooms() { renderRooms(await fetchRoomCounts()); }
 function renderRooms(counts: Record<string, number> | null) {
-  $('room-current').textContent = `${t('current')} · ${roomLabel(room)}`;
+  $('room-current').textContent = `${t('current')}: ${roomLabel(room)}`;
   const grid = $('room-grid');
   grid.innerHTML = '';
   // the current temple first, then the others
@@ -557,7 +559,8 @@ function renderRooms(counts: Record<string, number> | null) {
     section.className = 'temple-group';
     section.innerHTML = '<header><strong></strong><small></small></header><div class="room-grid-inner"></div>';
     section.querySelector('strong')!.textContent = pick(def.name);
-    section.querySelector('small')!.textContent = `${pick(def.place)}${total !== undefined ? ` · ${total}` : ''}`;
+    section.querySelector('small')!.textContent = pick(def.place);
+    if (total !== undefined) section.querySelector('header')!.dataset.total = String(total);
     const inner = section.querySelector('.room-grid-inner')!;
     for (const id of ids) {
       const count = counts?.[id];

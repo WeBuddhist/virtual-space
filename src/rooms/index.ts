@@ -15,7 +15,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     id: 'bodhgaya',
     tradition: 'pan',
     name: { en: 'Bodh Gaya', bo: 'རྡོ་རྗེ་གདན།' },
-    place: { en: 'Mahabodhi Temple · Bihar, India', bo: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་། རྒྱ་གར།' },
+    place: { en: 'Mahabodhi Temple, Bihar, India', bo: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་། རྒྱ་གར།' },
     hall: {
       name: { en: 'Mahabodhi Temple', bo: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་།' },
       signboard: 'བྱང་ཆུབ་ཆེན་པོའི་མཆོད་ཁང་',
@@ -41,8 +41,8 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
   tibetan: {
     id: 'tibetan',
     tradition: 'vajrayana',
-    name: { en: 'Tibetan Temple', bo: 'བོད་ཀྱི་ལྷ་ཁང་།' },
-    place: { en: 'Vajrayana', bo: 'རྡོ་རྗེ་ཐེག་པ།' },
+    name: { en: 'Namdroling', bo: 'རྣམ་གྲོལ་གླིང་།' },
+    place: { en: 'Golden Temple, Bylakuppe, India', bo: 'གསེར་མདོག་ལྷ་ཁང་། བྱི་ལ་ཀུབ། རྒྱ་གར།' },
     hall: {
       name: { en: 'Hall of Great Compassion', bo: 'ཐུགས་རྗེ་ཆེན་པོའི་ལྷ་ཁང་།' },
       signboard: 'ཐུགས་རྗེ་ཆེན་པོའི་ལྷ་ཁང་',
@@ -63,8 +63,8 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
   theravada: {
     id: 'theravada',
     tradition: 'theravada',
-    name: { en: 'Thai Temple', bo: 'ཐེ་ལནྜའི་ལྷ་ཁང་།' },
-    place: { en: 'Theravada', bo: 'གནས་བརྟན་པ།' },
+    name: { en: 'Wat Phra Si Rattana Mahathat', bo: 'ཝ་ཐི་ཕྲ་སི་རཏྣ་མ་ཧཱ་ཐཱ་ཐི།' },
+    place: { en: 'Phra Buddha Chinnarat, Phitsanulok, Thailand', bo: 'ཕི་ཙ་ནུ་ལོག ཐེ་ལནྜ།' },
     hall: {
       name: { en: 'Ordination Hall', bo: 'བསྙེན་རྫོགས་ཁང་།' },
       signboard: 'ཐེ་ལནྜའི་ལྷ་ཁང་',
@@ -83,8 +83,8 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
   mahayana: {
     id: 'mahayana',
     tradition: 'mahayana',
-    name: { en: 'East Asian Temple', bo: 'ཐེག་ཆེན་ལྷ་ཁང་།' },
-    place: { en: 'Mahayana', bo: 'ཐེག་པ་ཆེན་པོ།' },
+    name: { en: 'Tōdai-ji', bo: 'ཐོ་དའི་ཇི།' },
+    place: { en: 'Great Buddha Hall, Nara, Japan', bo: 'སངས་རྒྱས་ཆེན་པོའི་ལྷ་ཁང་། ན་ར། རི་པིན།' },
     hall: {
       name: { en: 'Main Buddha Hall', bo: 'གཙོ་བོའི་ལྷ་ཁང་།' },
       signboard: 'ཐེག་ཆེན་ལྷ་ཁང་',
@@ -96,7 +96,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     instruments: ['woodfish', 'temple-bell', 'dharma-drum', 'singing-bowl'],
     bowStyles: ['east-asian-bow', 'standing-bow'],
     services: [{ kind: 'dawn', hour: 4, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
-    timeZone: 'Asia/Seoul',
+    timeZone: 'Asia/Tokyo',
     residents: seated(SEATING.mahayana.residents),
     buildSite: genericSite,
   },

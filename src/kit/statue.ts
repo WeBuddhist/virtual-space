@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 // Baked statues (scripts/statues) carry named materials; this finishes them at
 // runtime: the painted face, glass for crystal, and shadows.
 
 export type FaceStyle = 'tibetan-painted' | 'gilt';
 
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map<string, Promise<THREE.Group>>();
 
 /** face-UV space: 0.26 m square, x −0.13…0.13 around the head, y −0.15…0.11 from its centre */

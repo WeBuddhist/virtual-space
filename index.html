@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#d8d5c8" />
+    <meta name="theme-color" content="#1e2b47" />
     <title>Ritrö — rest a while</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tibetan:wght@400;600&family=Noto+Serif+Tibetan:wght@600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&family=Noto+Sans+Tibetan:wght@400;600&family=Noto+Serif+Tibetan:wght@500;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237a1f22'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23e0a526'/%3E%3C/svg%3E" />
   </head>
   <body>
@@ -19,11 +19,14 @@
         <button class="pill-btn icon" id="btn-exit" data-i18n-label="exit">
           <svg viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l-4 4 4 4M10 12h10" /></svg>
         </button>
-        <button class="pill-btn room-btn" id="btn-room">
+        <button class="plate" id="btn-room" data-i18n-label="rooms">
           <strong id="temple-name"></strong>
-          <span id="room-number">1</span><span class="caret">⌄</span>
+          <small><span id="temple-place"></span><span class="room-tag"><span data-i18n="room"></span> <span id="room-number">1</span></span></small>
         </button>
-        <button class="pill-btn count" id="btn-people"><span id="people-count">01</span>/<span id="people-cap">100</span></button>
+        <button class="pill-btn count" id="btn-people" data-i18n-label="visitors">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3.5 19c.8-3.4 2.9-5 5.5-5s4.7 1.6 5.5 5M15.5 5.5a3 3 0 0 1 0 5.6M17.5 14.4c1.6.7 2.6 2.2 3 4.6" /></svg>
+          <span id="people-count">01</span><span class="cap">/<span id="people-cap">100</span></span>
+        </button>
       </header>
 
       <header class="hud hud-right">
@@ -88,7 +91,10 @@
       </dialog>
 
       <section class="screen loading" id="loading">
-        <div class="mark"></div>
+        <svg class="lamp" viewBox="0 0 64 96" aria-hidden="true">
+          <path class="flame" d="M32 8c7 12 12 20 12 30a12 12 0 0 1-24 0c0-10 5-18 12-30z" />
+          <path d="M14 62h36l-5 14H19z" /><path d="M24 76h16v8H24zM18 86h28" />
+        </svg>
         <h1 id="loading-name"></h1>
         <p data-i18n="openingHall"></p>
       </section>
