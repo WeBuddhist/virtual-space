@@ -47,28 +47,3 @@ export function photo(mat: THREE.MeshStandardMaterial, url: string, o: PhotoOpti
   }).catch(() => { /* keep the procedural look */ });
   return mat;
 }
-
-/**
- * A panoramic skyline wrapped around the site on an open cylinder, drawn behind
- * everything and outside the fog. `copies` mirrored repeats close the 360° seam.
- */
-export function skylineRing(url: string, radius: number, copies: number, aspect: number) {
-  const circumference = 2 * Math.PI * radius;
-  const height = circumference / copies / aspect;
-  // it writes depth, so the sky dome further out stays hidden behind it
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, fog: false, transparent: true, opacity: 0 });
-  const ring = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 96, 1, true), mat);
-  ring.position.y = height / 2 - 6;
-  load(url).then((base) => {
-    const tex = base.clone();
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.wrapS = THREE.MirroredRepeatWrapping;
-    tex.repeat.set(copies, 1);
-    tex.needsUpdate = true;
-    mat.map = tex;
-    mat.opacity = 1;
-    mat.transparent = false;
-    mat.needsUpdate = true;
-  }).catch(() => { ring.visible = false; });
-  return ring;
-}

@@ -43,6 +43,8 @@ export interface Site {
   spawnYaw: number;
   bounds: Box2;
   groundHeight(x: number, z: number): number;
+  /** solid buildings that hide name tags behind them */
+  occluders?: THREE.Object3D[];
   /** night is 0 by day and 1 at night; drive lamps, flags, water… */
   update(dt: number, night: number, elapsed: number): void;
 }
@@ -75,6 +77,7 @@ export interface TempleDef {
   timeZone: string;
   /** resident practitioners; their seats must match SEATING in shared/rooms.ts */
   residents: Resident[];
-  sky?: { dayTop: number; dayBottom: number; fog: number };
+  /** sky colours and how far the haze starts and ends (metres) */
+  sky?: { dayTop: number; dayBottom: number; fog: number; fogNear?: number; fogFar?: number };
   buildSite(ctx: SiteContext): Site;
 }

@@ -35,7 +35,8 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
       { seat: 10, robe: 0x7a1f2b, shirt: 0xd9a12b, pose: 'bow' },
       { seat: 13, robe: 0x7a1f2b, shirt: 0xd9a12b, pose: 'bow' },
     ],
-    sky: { dayTop: 0xa9c8e6, dayBottom: 0xf0e2c8, fog: 0xe6d9c0 },
+    // open, clear sky over green lawns: a pale-blue haze far out
+    sky: { dayTop: 0x8fb8e2, dayBottom: 0xe2ecf2, fog: 0xdce8ee, fogNear: 90, fogFar: 460 },
     buildSite: bodhgayaSite,
   },
   tibetan: {

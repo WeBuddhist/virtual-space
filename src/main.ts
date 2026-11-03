@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import './style.css';
 import { applyDom, getLang, onLangChange, pick, setLang, t, type Key } from './i18n';
 import { ROOM_CAPACITY, TEMPLE_IDS, parseRoom, roomId, INSTANCES_PER_TEMPLE } from '../shared/rooms';
@@ -632,9 +636,18 @@ $('btn-resume').addEventListener('click', () => {
 });
 
 // ---- frame loop ----------------------------------------------------------
+// a soft glow on lamps, flames and floodlit gold: gentle by day, stronger at night
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.1, 0.45, 1.0);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  bloom.resolution.set(w / 2, h / 2);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -645,13 +658,30 @@ const tmp = new THREE.Vector3();
 const clock = new THREE.Clock();
 let first = true;
 
+// line-of-sight checks for name tags are spread out: each tag is re-checked a few times a second
+const occlusionRay = new THREE.Raycaster();
+const hiddenBehind = new Map<string, { at: number; hidden: boolean }>();
+function occluded(id: string, head: THREE.Vector3, dist: number) {
+  const occ = world.site.occluders;
+  if (!occ?.length) return false;
+  const now = performance.now();
+  const prev = hiddenBehind.get(id);
+  if (prev && now - prev.at < 250) return prev.hidden;
+  occlusionRay.set(camera.position, head.clone().sub(camera.position).normalize());
+  occlusionRay.far = dist - 0.3;
+  const hidden = occlusionRay.intersectObjects(occ, true).length > 0;
+  hiddenBehind.set(id, { at: now + Math.random() * 60, hidden });
+  return hidden;
+}
+
 function placeTag(id: string, avatar: Avatar) {
   const el = tags.get(id);
   if (!el) return;
   avatar.headTop(tmp);
   const dist = tmp.distanceTo(camera.position);
+  const blocked = dist < 28 && occluded(id, tmp.clone(), dist);
   tmp.project(camera);
-  const visible = tmp.z < 1 && dist < 28 && Math.abs(tmp.x) < 1.1 && Math.abs(tmp.y) < 1.1;
+  const visible = !blocked && tmp.z < 1 && dist < 28 && Math.abs(tmp.x) < 1.1 && Math.abs(tmp.y) < 1.1;
   el.style.display = visible ? '' : 'none';
   if (!visible) return;
   const x = (tmp.x * 0.5 + 0.5) * innerWidth;
@@ -701,7 +731,8 @@ function frame() {
 
   $('btn-incense').hidden = mode === 'bow' || me.root.position.distanceTo(BURNER) > 3.6;
   world.update(dt, new Date());
-  renderer.render(scene, camera);
+  bloom.strength = 0.06 + (1 - world.daylight) * 0.32;
+  composer.render();
   if (first) {
     first = false;
     $('loading').classList.add('fade');

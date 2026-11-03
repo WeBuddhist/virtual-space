@@ -325,7 +325,7 @@ export function buildShrine(rng: () => number) {
   // light: warm spots from the ceiling corners on the face, a fill, candle flicker at the ledge
   const spots: THREE.SpotLight[] = [];
   for (const z of [-2.2, 2.2]) {
-    const s = new THREE.SpotLight(0xffd29a, 60, 9, 0.42, 0.55, 1.2);
+    const s = new THREE.SpotLight(0xffd29a, 38, 9, 0.42, 0.55, 1.2);
     s.position.set(S.x1 - 0.4, S.ceiling - 0.4, z);
     s.target.position.set(BACK + 0.9, PLINTH_TOP + 1.4, 0);
     s.castShadow = true;

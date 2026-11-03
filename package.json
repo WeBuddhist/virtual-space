@@ -11,7 +11,9 @@
     "preview": "npm run build && wrangler dev",
     "studio": "vite --open /__studio",
     "statues": "node --experimental-strip-types --no-warnings scripts/statues/build.ts",
-    "mocap": "node --experimental-strip-types --no-warnings scripts/mocap/build.ts"
+    "mocap": "node --experimental-strip-types --no-warnings scripts/mocap/build.ts",
+    "textures": "node --experimental-strip-types --no-warnings scripts/textures/generate.ts",
+    "argon": "node --experimental-strip-types --no-warnings scripts/textures/argon.ts"
   },
   "dependencies": {
     "three": "^0.180.0"

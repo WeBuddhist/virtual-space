@@ -27,7 +27,7 @@ export function buildWorld(renderer: THREE.WebGLRenderer, temple: TempleDef): Wo
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.55;
-  scene.fog = new THREE.Fog(temple.sky?.fog ?? 0xd8d5c8, 30, 140);
+  scene.fog = new THREE.Fog(temple.sky?.fog ?? 0xd8d5c8, temple.sky?.fogNear ?? 30, temple.sky?.fogFar ?? 140);
 
   const rng = (() => { let s = 7; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
 

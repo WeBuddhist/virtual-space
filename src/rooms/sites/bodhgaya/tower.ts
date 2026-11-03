@@ -202,6 +202,30 @@ export function buildTower() {
   win.rotation.y = Math.PI / 2;
   win.rotateX(-Math.atan2(2.75, H));
   group.add(win);
+  // tier mouldings and a ribbed corner amalaka at every tier, as on the real shikhara
+  const tierGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.34, 14);
+  const tierRing = new THREE.TorusGeometry(0.42, 0.09, 6, 14);
+  const tiers = (cxT: number, czT: number, base: number, top: number, height: number, y0: number, count: number, scale: number) => {
+    for (let i = 1; i <= count; i++) {
+      const t = i / count;
+      const hw = (base + (top - base) * t) / 2;
+      const y = y0 + height * t;
+      const ledge = new THREE.Mesh(new THREE.BoxGeometry(hw * 2 + 0.35 * scale, 0.22 * scale, hw * 2 + 0.35 * scale), plain);
+      ledge.position.set(cxT, y, czT);
+      ledge.castShadow = true;
+      group.add(ledge);
+      for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const am = new THREE.Mesh(tierGeo, plain);
+        am.position.set(cxT + sx * hw, y + 0.25 * scale, czT + sz * hw);
+        am.scale.setScalar(scale);
+        const ring = new THREE.Mesh(tierRing, plain);
+        ring.rotation.x = Math.PI / 2;
+        am.add(ring);
+        group.add(am);
+      }
+    }
+  };
+  tiers(cx, 0, 10, 4.5, H, T.baseH, 9, 1);
   const top = crown(1);
   top.position.set(cx, T.baseH + H, 0);
   group.add(top);
@@ -212,6 +236,7 @@ export function buildTower() {
     t.position.set(x, T.baseH + 0.6, z);
     t.castShadow = true;
     group.add(t);
+    tiers(x, z, 3.2, 1.4, 9, T.baseH + 0.6, 3, 0.4);
     const c = crown(0.32);
     c.position.set(x, T.baseH + 9.6, z);
     group.add(c);
@@ -255,7 +280,7 @@ export function buildTower() {
   return {
     group,
     update(night: number) {
-      for (const s of floods) s.intensity = night * 2600;
+      for (const s of floods) s.intensity = night * 650;
       GOLD_TOP.emissive.setHex(0x5a3a08);
       GOLD_TOP.emissiveIntensity = night * 0.6;
     },

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { canopy, limb, trunk, type Cluster } from '../../../kit/foliage';
 import { photo } from '../../../kit/textures';
 import type { Box2 } from '../../types';
 import { TEMPLE } from './tower';
@@ -80,20 +81,22 @@ function stupaGeometry() {
   return mergeGeometries(parts.map((g) => g.toNonIndexed()));
 }
 
-/** a simple broadleaf tree (peepal / mango) */
-function broadTree(rng: () => number, mat: THREE.Material) {
+/** a broadleaf tree (mango / peepal): fluted trunk, a few limbs, leaf clusters at their tips */
+function broadTree(rng: () => number, bark: THREE.Material, clusters: Cluster[], at: THREE.Vector3) {
   const g = new THREE.Group();
-  const h = 4 + rng() * 3;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.35, h, 8), std(0x6d6151));
-  trunk.position.y = h / 2;
-  trunk.castShadow = true;
-  g.add(trunk);
-  for (let i = 0; i < 5; i++) {
-    const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(2 + rng() * 1.3, 1), mat);
-    blob.position.set((rng() - 0.5) * 3, h + rng() * 2, (rng() - 0.5) * 3);
-    blob.castShadow = true;
-    g.add(blob);
+  const h = 3.2 + rng() * 2;
+  const t = trunk(h, 0.28 + rng() * 0.1, bark, 6, 0.5);
+  g.add(t);
+  const top = new THREE.Vector3(0, h, 0);
+  const n = 3 + Math.floor(rng() * 2);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rng() * 0.6;
+    const tip = new THREE.Vector3(Math.cos(a) * (1.4 + rng()), h + 1.4 + rng() * 1.6, Math.sin(a) * (1.4 + rng()));
+    g.add(limb(top, tip, 0.18, 0.07, bark));
+    clusters.push({ center: tip.clone().add(at).add(new THREE.Vector3(0, 0.4, 0)), radius: 2.2 + rng() * 0.6, count: 360 });
   }
+  clusters.push({ center: new THREE.Vector3(0, h + 2.4, 0).add(at), radius: 2.6, count: 420 });
+  g.position.copy(at);
   return g;
 }
 
@@ -164,7 +167,7 @@ export function buildGrounds(rng: () => number) {
   const add = (o: THREE.Object3D) => { group.add(o); return o; };
 
   // courtyard and approach path
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(BOUNDS.x1 - BOUNDS.x0 + 30, BOUNDS.z1 - BOUNDS.z0 + 30), photo(new THREE.MeshStandardMaterial({ map: flagstones([18, 14]), roughness: 0.95 }), TEX + 'flagstones.jpg', { repeat: [32, 26], mirror: true }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(BOUNDS.x1 - BOUNDS.x0 + 0.4, BOUNDS.z1 - BOUNDS.z0 + 0.4), photo(new THREE.MeshStandardMaterial({ map: flagstones([18, 14]), roughness: 0.95 }), TEX + 'flagstones.jpg', { repeat: [24, 19], mirror: true }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.set((BOUNDS.x0 + BOUNDS.x1) / 2, 0, (BOUNDS.z0 + BOUNDS.z1) / 2);
   ground.receiveShadow = true;
@@ -175,7 +178,7 @@ export function buildGrounds(rng: () => number) {
   path.receiveShadow = true;
   floor.push(add(path));
   // grass beds either side of the path
-  const grass = photo(new THREE.MeshStandardMaterial({ color: 0x6b8a3a, roughness: 1 }), TEX + 'lawn.jpg', { repeat: [8, 2], mirror: true });
+  const grass = photo(new THREE.MeshStandardMaterial({ color: 0x9ccf6a, roughness: 1 }), TEX + 'lawn.jpg', { repeat: [8, 2], mirror: true, keepColor: true });
   for (const z of [-8, 8]) {
     const bed = new THREE.Mesh(new THREE.PlaneGeometry(30, 7), grass);
     bed.rotation.x = -Math.PI / 2;
@@ -234,6 +237,20 @@ export function buildGrounds(rng: () => number) {
     add(holder);
     const minX = Math.min(a.x, b.x), maxX = Math.max(a.x, b.x), minZ = Math.min(a.z, b.z), maxZ = Math.max(a.z, b.z);
     colliders.push({ x0: minX - 0.25, x1: maxX + 0.25, z0: minZ - 0.25, z1: maxZ + 0.25 });
+  }
+  // marigold garlands swagged between the posts either side of the gate, and khatas tied on
+  const marigold = std(0xf08a12, 0.85), yellow = std(0xf2c12e, 0.85), khata = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.8, side: THREE.DoubleSide });
+  for (const [za, zb] of [[-RAIL.gate, RAIL.z0], [RAIL.gate, RAIL.z1]]) {
+    const n = 7;
+    for (let i = 0; i < n; i++) {
+      const z0 = za + ((zb - za) * i) / n, z1 = za + ((zb - za) * (i + 1)) / n;
+      const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(RAIL.x1 + 0.2, 1.95, z0), new THREE.Vector3(RAIL.x1 + 0.28, 1.35, (z0 + z1) / 2), new THREE.Vector3(RAIL.x1 + 0.2, 1.95, z1)]);
+      add(new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.07, 6), i % 2 ? yellow : marigold));
+      const k = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.7), khata);
+      k.position.set(RAIL.x1 + 0.2, 1.5, z0);
+      k.rotation.set(0.1, Math.PI / 2, (i % 2 ? 0.08 : -0.08));
+      add(k);
+    }
   }
   const postMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, 2, 0.24), sandstone, posts.length);
   posts.forEach((m, i) => postMesh.setMatrixAt(i, m));
@@ -420,14 +437,16 @@ export function buildGrounds(rng: () => number) {
   }
 
   // trees and palms ringing the sunken courtyard
-  const leaf = photo(std(0x3f6a2a, 0.85), TEX + 'foliage.jpg', { repeat: [3, 2], mirror: true, bump: 3 });
+  const bark = photo(std(0x6d6151, 0.95), TEX + 'bark.jpg', { repeat: [2, 2], mirror: true, bump: 3 });
+  const clusters: Cluster[] = [];
   const treeSpots: [number, number][] = [[-34, -20], [-20, -21], [-6, -21], [10, -20], [40, -20], [50, -16], [-34, 20], [-33, 8], [-33, -8], [14, 40], [36, 42], [50, 30], [50, 12], [-24, 26], [-28, 40]];
   for (const [x, z] of treeSpots) {
-    const t = broadTree(rng, leaf);
-    t.position.set(x, 0, z);
-    add(t);
+    add(broadTree(rng, bark, clusters, new THREE.Vector3(x, 0, z)));
     colliders.push({ x0: x - 0.5, x1: x + 0.5, z0: z - 0.5, z1: z + 0.5 });
   }
+  // every courtyard tree's leaves in one swaying instanced canopy
+  const leaves = canopy(clusters, 'mango', rng, { size: 1.6, sun: 0x5f8f34, shade: 0x2a4a1c });
+  add(leaves.mesh);
   for (const [x, z] of [[11, 4.6], [11, -4.6], [22, 4.6], [22, -4.6], [34, -4.8], [34, 4.8]]) {
     const p = palm(rng);
     p.position.set(x, 0, z);
@@ -435,28 +454,23 @@ export function buildGrounds(rng: () => number) {
     colliders.push({ x0: x - 0.3, x1: x + 0.3, z0: z - 0.3, z1: z + 0.3 });
   }
 
-  // the courtyard sits about 5 m below the town: retaining walls all round, steps to the east
-  const wallMat = photo(std(0xa89778, 0.95), TEX + 'stucco.jpg', { repeat: [12, 1.5], mirror: true, bump: 1.5 });
+  // open all round: the paved precinct ends at a low kerb and green lawn runs to the horizon
+  const lawnFar = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), photo(new THREE.MeshStandardMaterial({ color: 0x9ccf6a, roughness: 1 }), TEX + 'lawn.jpg', { repeat: [220, 220], mirror: true, keepColor: true }));
+  lawnFar.rotation.x = -Math.PI / 2;
+  lawnFar.position.set((BOUNDS.x0 + BOUNDS.x1) / 2, -0.02, (BOUNDS.z0 + BOUNDS.z1) / 2);
+  lawnFar.receiveShadow = true;
+  floor.push(add(lawnFar));
   const W = BOUNDS;
   for (const [x, z, w, d] of [
-    [(W.x0 + W.x1) / 2, W.z0 - 1, W.x1 - W.x0 + 4, 2],
-    [(W.x0 + W.x1) / 2, W.z1 + 1, W.x1 - W.x0 + 4, 2],
-    [W.x0 - 1, (W.z0 + W.z1) / 2, 2, W.z1 - W.z0 + 4],
+    [(W.x0 + W.x1) / 2, W.z0 - 0.2, W.x1 - W.x0 + 0.8, 0.4],
+    [(W.x0 + W.x1) / 2, W.z1 + 0.2, W.x1 - W.x0 + 0.8, 0.4],
+    [W.x0 - 0.2, (W.z0 + W.z1) / 2, 0.4, W.z1 - W.z0],
+    [W.x1 + 0.2, (W.z0 + W.z1) / 2, 0.4, W.z1 - W.z0],
   ] as const) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 5, d), wallMat);
-    wall.position.set(x, 2.5, z);
-    wall.receiveShadow = true;
-    add(wall);
-  }
-  for (let i = 0; i < 12; i++) {
-    const step = new THREE.Mesh(new THREE.BoxGeometry(1, 0.42 * (i + 1), 10), wallMat);
-    step.position.set(W.x1 + 0.5 + i, 0.21 * (i + 1), 0);
-    add(step);
-  }
-  for (const z of [-15, 15]) {
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(14, 5, 20), wallMat);
-    wing.position.set(W.x1 + 7, 2.5, z * 1.33);
-    add(wing);
+    const kerb = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), buff);
+    kerb.position.set(x, 0.15, z);
+    kerb.receiveShadow = true;
+    add(kerb);
   }
 
   return {
@@ -464,6 +478,7 @@ export function buildGrounds(rng: () => number) {
     burner,
     flags: group.children.filter((o) => o.userData.sway !== undefined),
     update(night: number, elapsed: number) {
+      leaves.uTime.value = elapsed;
       glow.emissiveIntensity = 0.3 + night * 2.2;
       pathLight.intensity = night * 120;
       lampMat.emissiveIntensity = 0.9 + night * 1.2 + Math.sin(elapsed * 9) * 0.05;

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { skylineRing } from '../../../kit/textures';
 import type { Box2, Cushion, Site, SiteContext } from '../../types';
 import { buildBodhi, TREE } from './bodhi';
 import { BOUNDS, BURNER_AT, buildGrounds } from './grounds';
+import { buildPilgrims } from './pilgrims';
 import { buildShrine } from './shrine';
 import { buildTower, SANCTUM, TOWER_COLLIDERS } from './tower';
 
@@ -15,10 +15,7 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
   const bodhi = buildBodhi(rng);
   const grounds = buildGrounds(rng);
   scene.add(tower.group, shrine.group, bodhi.group, grounds.group);
-  // the town beyond the sunken courtyard: a generated panorama (scripts/textures), mirrored twice around
-  const skyline = skylineRing('/textures/bodhgaya/skyline.jpg', 220, 2, 2560 / 866);
-  scene.add(skyline);
-  const dayTint = new THREE.Color(0xffffff), nightTint = new THREE.Color(0x1b2238);
+  const pilgrims = buildPilgrims(scene, rng);
 
   const colliders: Box2[] = [...TOWER_COLLIDERS, shrine.collider, ...bodhi.colliders, ...grounds.colliders];
 
@@ -59,13 +56,14 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
     spawnYaw: WEST,
     bounds: BOUNDS,
     groundHeight: () => 0,
-    update(_dt, night, elapsed) {
+    occluders: [tower.group],
+    update(dt, night, elapsed) {
+      pilgrims.update(dt);
       tower.update(night);
       shrine.update(elapsed);
-      bodhi.update(elapsed);
+      bodhi.update(elapsed, dt);
       grounds.update(night, elapsed);
       doorGlow.intensity = 2 + night * 6;
-      (skyline.material as THREE.MeshBasicMaterial).color.lerpColors(dayTint, nightTint, night);
       for (const f of [...bodhi.flags.flatMap((g) => g.children), ...grounds.flags]) {
         if (f.userData.sway !== undefined) f.rotation.x = Math.sin(elapsed * 2 + f.userData.sway) * 0.25;
       }
