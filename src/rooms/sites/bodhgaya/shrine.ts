@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SplatMesh } from '@sparkjsdev/spark';
 import { loadStatue } from '../../../kit/statue';
 import { SANCTUM } from './tower';
 
@@ -301,11 +302,23 @@ export function buildShrine(rng: () => number) {
   statueSlot.rotation.y = Math.PI / 2; // the sculpt faces +z; the shrine faces +x
   statueSlot.scale.setScalar(STATUE_SCALE);
   group.add(statueSlot);
-  loadStatue('bodhgaya', 'tibetan-painted').then((s) => statueSlot.add(s)).catch(() => {});
+  // a Gaussian splat of the real image, made by an image-to-3D model from sanctum photos
+  // (scripts/statues/splat_clean.py, spz.ts). It carries its own glitter halo, so the
+  // drawn one goes; the sculpted statue is the fallback if the splat fails to load.
+  const splat = new SplatMesh({ url: '/models/statues/bodhgaya.spz' });
+  // the splat's base sits where the sculpt's does, nudged forward so the back of its
+  // halo clears the blue backdrop; a little larger so it fills the case as in photos
+  splat.position.set(0, -0.12, 0.16);
+  splat.scale.setScalar(1.15);
+  splat.initialized.then(() => {
+    statueSlot.add(splat);
+    h.visible = false;
+  }).catch(() => loadStatue('bodhgaya', 'tibetan-painted').then((s) => statueSlot.add(s)).catch(() => {}));
 
-  // glass front and the offering ledge with flowers
+  // glass front and the offering ledge with flowers. Plain alpha glass, not transmission:
+  // transmission samples an opaque-only pass, which would hide the splat image behind it
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0 - 0.2, top - 0.6), new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, transmission: 0.96, roughness: 0.02, thickness: 0.01, transparent: true, opacity: 0.25,
+    color: 0xdfe8ff, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.035, depthWrite: false,
   }));
   glass.position.set(FRONT, (top - 0.6) / 2 + 0.6, 0);
   glass.rotation.y = Math.PI / 2;

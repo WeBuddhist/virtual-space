@@ -16,6 +16,7 @@
     "argon": "node --experimental-strip-types --no-warnings scripts/textures/argon.ts"
   },
   "dependencies": {
+    "@sparkjsdev/spark": "^2.4.0",
     "three": "^0.180.0"
   },
   "devDependencies": {

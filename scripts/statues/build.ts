@@ -3,14 +3,11 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { MAT, faceUV, seatUV, seatedBuddha, type BuddhaOptions } from './buddha.ts';
-import { meshShape, toGLB, type MaterialDef } from './mesh.ts';
+import { meshShape, toGLB } from './mesh.ts';
+import { GOLD, materials, type Palette } from './palette.ts';
 
-type Rgb = [number, number, number];
-const hex = (h: number): Rgb => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255].map((c) => c ** 2.2) as Rgb;
+interface Preset { options: BuddhaOptions; palette: Palette }
 
-interface Preset { options: BuddhaOptions; palette: Partial<Record<keyof typeof MAT, { color: number; metallic: number; roughness: number }>> }
-
-const GOLD = { color: 0xe3b04b, metallic: 1, roughness: 0.28 };
 const PRESETS: Record<string, Preset> = {
   // Mahabodhi: Pala-style gilt Buddha touching the earth, robed by devotees
   bodhgaya: {
@@ -36,23 +33,6 @@ const PRESETS: Record<string, Preset> = {
   },
 };
 
-function materials(p: Preset): MaterialDef[] {
-  const base: Record<keyof typeof MAT, { color: number; metallic: number; roughness: number }> = {
-    gilt: GOLD, robe: GOLD, hair: GOLD,
-    face: GOLD,
-    crystal: { color: 0xf4f6ff, metallic: 0.1, roughness: 0.05 },
-    lips: { color: 0xb5463a, metallic: 0.2, roughness: 0.4 },
-    cloth: { color: 0xe08a1e, metallic: 0, roughness: 0.85 },
-    seat: { color: 0xd8a640, metallic: 1, roughness: 0.35 },
-    jewel: { color: 0xc0283a, metallic: 0.2, roughness: 0.15 },
-    white: { color: 0xf3efe6, metallic: 0, roughness: 0.4 },
-    ...p.palette,
-  };
-  return (Object.keys(MAT) as (keyof typeof MAT)[])
-    .sort((a, b) => MAT[a] - MAT[b])
-    .map((k) => ({ name: k, color: hex(base[k].color), metallic: base[k].metallic, roughness: base[k].roughness }));
-}
-
 const args = process.argv.slice(2);
 const cell = Number(args.find((a) => a.startsWith('--cell='))?.slice(7) ?? 0.006);
 const ids = args.filter((a) => !a.startsWith('--'));
@@ -64,7 +44,7 @@ for (const id of ids.length ? ids : Object.keys(PRESETS)) {
   // the head is meshed finer than the body; the face gets UVs for its painted texture
   const { body, head } = seatedBuddha(preset.options);
   const parts = [...meshShape(body, cell, [{ material: MAT.seat, fn: seatUV }]), ...meshShape(head, cell * 0.45, [{ material: MAT.face, fn: faceUV }])];
-  const glb = toGLB(parts, materials(preset), `statue-${id}`);
+  const glb = toGLB(parts, materials(preset.palette), `statue-${id}`);
   // quantize and meshopt-compress for the web (about 4.5x smaller)
   const raw = `public/models/statues/${id}.raw.glb`;
   writeFileSync(raw, glb);

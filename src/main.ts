@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { SparkRenderer } from '@sparkjsdev/spark';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import './style.css';
 import { applyDom, getLang, onLangChange, pick, setLang, t, type Key } from './i18n';
@@ -67,6 +68,8 @@ const RESIDENTS = temple.residents.map((r, i) => ({ ...r, ...RESIDENT_LOOKS[i % 
 const BURNER = world.site.burner.position;
 const BURNER_STAND = world.site.burner.stand;
 const scene = world.scene;
+// draws Gaussian-splat objects (such as the Bodh Gaya image) within the normal scene render
+scene.add(new SparkRenderer({ renderer }));
 const me = new Avatar();
 me.root.position.copy(world.site.spawn).add(new THREE.Vector3((Math.random() - 0.5) * 1.6, 0, Math.random()));
 scene.add(me.root);
