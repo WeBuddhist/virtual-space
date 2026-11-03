@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { photo } from '../../../../kit/textures';
 import { RAIL } from '../grounds';
+import { VAJRASANA } from '../bodhi';
 import { TEMPLE } from '../tower';
 import { mat } from './kit';
 
@@ -105,6 +106,7 @@ export async function loadKimi(parents: Record<string, THREE.Object3D>, stupaSpo
       if (id === 'tower') parents.tower.add(place(mod.build(), new THREE.Vector3((TEMPLE.x0 + TEMPLE.x1) / 2, 0, 0), EAST));
       else if (id === 'portico') parents.tower.add(place(mod.build(), new THREE.Vector3(TEMPLE.x1, 0, 0), EAST));
       else if (id === 'torana') parents.grounds.add(place(mod.build(), new THREE.Vector3(16, 0, 0), EAST));
+      else if (id === 'vajrasana') parents.bodhi.add(place(mod.build(), new THREE.Vector3(VAJRASANA.x, 0, VAJRASANA.z), EAST));
       else if (id === 'animesh') parents.grounds.add(place(mod.build(), new THREE.Vector3(26, 0, -10), 0));
       else if (id === 'jewelwalk') parents.grounds.add(place(mod.build(), new THREE.Vector3(TEMPLE.x0 + 8, 0, -10.5), 0));
       else if (id === 'railing') {

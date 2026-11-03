@@ -126,6 +126,39 @@ export function trunk(height: number, radius: number, mat: THREE.Material, flute
   return mesh;
 }
 
+/**
+ * A curved, tapering bough from a to b: it rises and sags along a bend of `bend` × its
+ * length (positive arches up, negative droops), as heavy old limbs do.
+ */
+export function bough(a: THREE.Vector3, b: THREE.Vector3, ra: number, rb: number, mat: THREE.Material, bend = 0.12, twist = 0) {
+  const len = a.distanceTo(b);
+  const dir = b.clone().sub(a).normalize();
+  // bend sideways as well as up/down so limbs don't read as straight poles
+  const side = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+  const ctrl = a.clone().lerp(b, 0.5)
+    .add(new THREE.Vector3(0, bend * len, 0))
+    .addScaledVector(side, twist * len);
+  const curve = new THREE.QuadraticBezierCurve3(a, ctrl, b);
+  const segs = 12, radial = 9;
+  const geo = new THREE.TubeGeometry(curve, segs, 1, radial, false);
+  const pos = geo.attributes.position;
+  const c = new THREE.Vector3(), v = new THREE.Vector3();
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    curve.getPointAt(t, c);
+    const r = ra + (rb - ra) * t;
+    for (let j = 0; j <= radial; j++) {
+      const k = i * (radial + 1) + j;
+      v.fromBufferAttribute(pos, k).sub(c).multiplyScalar(r).add(c);
+      pos.setXYZ(k, v.x, v.y, v.z);
+    }
+  }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, mat);
+  m.castShadow = true;
+  return m;
+}
+
 /** a limb as a tapered cylinder between two points */
 export function limb(a: THREE.Vector3, b: THREE.Vector3, ra: number, rb: number, mat: THREE.Material) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rb, ra, a.distanceTo(b), 9, 1), mat);

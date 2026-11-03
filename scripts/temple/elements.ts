@@ -131,6 +131,32 @@ Materials: 'brick', 'stucco' or 'whitewash' as the photos show, 'dark' for the d
     ],
   },
   {
+    id: 'vajrasana',
+    title: 'The Vajrasana and the Bodhi tree enclosure',
+    args: '',
+    budget: 60_000,
+    brief: `\`export function build(): THREE.Group\` — the most sacred spot of Buddhism: the Vajrasana (Diamond Throne), where the Buddha sat on the night of his awakening, facing east with the Bodhi tree behind him, and the raised enclosure of the Bodhi tree. Your frame's origin is the centre of the Vajrasana; +z points east (toward the temple's west wall, which stands at z = +2.2: build nothing beyond z = +2.1).
+
+Build, as in the photos:
+- The Vajrasana: a polished sandstone slab about 2.3 m wide (along x) and 1.4 m deep (along z), on a carved plinth about 0.6 m high, covered in cloth (saffron, gold-edged) with offerings, within x ±1.45, z ±0.95.
+- Its gilded grille and railing close round it, within x ±1.75, z ±1.25, and the canopy over it: posts and a cloth roof (yellow and saffron, as in the photos) at about y 2.6–3.6; the roof may reach x ±2.6, z ±2.2 above y 2.4.
+- The raised platform round the Bodhi tree, centred at x = 0, z = -8.2: roughly circular, about 5.2 m in radius, its top about 0.5 m up, with its stone railing and gilded grille panels as in the photos.
+- Do NOT model the tree itself: the trunk, limbs and leaves are provided and stand at x 0, z -8.2.
+
+Materials: 'sandstone' or 'granite' for the throne and platform, 'gold' and 'brass' for the grilles and fittings, 'saffron-cloth' and 'red-cloth' for the cloths, 'marble' for paving if seen.`,
+    keepClear: [
+      { name: 'the Bodhi tree trunk', box: { x: [-1.5, 1.5], y: [0.6, 15], z: [-9.7, -6.7] } },
+      { name: 'where pilgrims stand beside the throne (north)', box: { x: [1.95, 3.0], y: [0.05, 2.3], z: [-1.2, 1.2] } },
+      { name: 'where pilgrims stand beside the throne (south)', box: { x: [-3.0, -1.95], y: [0.05, 2.3], z: [-1.2, 1.2] } },
+    ],
+    refs: [
+      `${W}vajrasana-bodhi/vajrasana-enclosure-front-01.jpg`, `${W}vajrasana-bodhi/vajrasana-enclosure-side-01.jpg`, `${W}vajrasana-bodhi/vajrasana-throne-gilded-monk-01.jpg`,
+      `${W}vajrasana-bodhi/bodhi-tree-shelter-yellow-cloth-01.jpg`, `${W}vajrasana-bodhi/bodhi-tree-enclosure-02.jpg`, `${W}vajrasana-bodhi/bodhi-tree-enclosure-03.jpg`,
+      `${W}vajrasana-bodhi/bodhi-tree-west-wall-01.jpg`, `${W}vajrasana-bodhi/bodhi-trunk-offerings-01.jpg`, `${W}vajrasana-bodhi/bodhi-canopy-railing-01.jpg`,
+      `${W}vajrasana-bodhi/bodhi-tree-branches-01.jpg`, `${W}vajrasana-bodhi/bodhi-tree-historic-bw-01.jpg`,
+    ],
+  },
+  {
     id: 'jewelwalk',
     title: 'The Ratnachankrama (Jewel Walk)',
     args: '',

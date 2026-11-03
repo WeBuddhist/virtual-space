@@ -113,7 +113,7 @@ function bake(mod: string, out: string): { ok: boolean; log: string; stats?: any
 
 /** current hand-made version of the element, for the model to beat */
 function baseline() {
-  const file = id === 'tower' || id === 'portico' ? 'tower.ts' : 'grounds.ts';
+  const file = id === 'tower' || id === 'portico' ? 'tower.ts' : id === 'vajrasana' ? 'bodhi.ts' : 'grounds.ts';
   return readFileSync(join(ROOT, 'src/rooms/sites/bodhgaya', file), 'utf8');
 }
 
@@ -122,7 +122,7 @@ const system = [
   `\n## Your element: ${el.title}\n\n${el.brief}\n\nTriangle budget: ${el.budget.toLocaleString('en')}.`,
   el.keepClear?.length ? `\nKeep-clear boxes (no geometry inside):\n${el.keepClear.map((k) => `- ${k.name}: x ${k.box.x.join('…')}, y ${k.box.y.join('…')}, z ${k.box.z.join('…')}`).join('\n')}` : '',
   '\n## kit.ts\n```ts\n' + readFileSync(KIT, 'utf8') + '```',
-  `\n## The current hand-made version (${id === 'tower' || id === 'portico' ? 'tower.ts' : 'grounds.ts'}; site coordinates, +x east, not your frame)\n\`\`\`ts\n${baseline()}\`\`\``,
+  `\n## The current hand-made version (site coordinates, +x east, not your frame)\n\`\`\`ts\n${baseline()}\`\`\``,
 ].join('\n');
 
 const refs = el.refs
