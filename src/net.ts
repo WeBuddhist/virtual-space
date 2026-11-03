@@ -16,7 +16,13 @@ export interface Visitor {
   x: number; z: number; yaw: number;
   pose: NetPose;
   seat: number | null;
+  /** proximity voice: 0 off, 1 listening, 2 speaking */
+  voice?: VoiceState;
 }
+
+export type VoiceState = 0 | 1 | 2;
+/** WebRTC connection setup relayed through the room: a description or an ICE candidate */
+export type RtcSignal = { sdp: RTCSessionDescriptionInit } | { candidate: RTCIceCandidateInit | null };
 
 export type ServerMsg =
   | { type: 'snapshot'; room: string; selfId: string; capacity: number; visitors: Visitor[] }
@@ -27,6 +33,8 @@ export type ServerMsg =
   | { type: 'seat'; id: string; seat: number | null }
   | { type: 'seat-granted'; seat: number }
   | { type: 'seat-unavailable' }
+  | { type: 'voice'; id: string; state: VoiceState }
+  | { type: 'rtc'; from: string; data: RtcSignal }
   | { type: 'full' };
 
 export type Status = 'connecting' | 'online' | 'offline' | 'full';
@@ -115,6 +123,8 @@ export class Net {
 
   act(act: Act, style?: BowStyle, detail: ActDetail = {}) { this.send({ type: 'act', act, style, ...detail }); }
   seat(seat: number) { this.send({ type: 'seat', seat }); }
+  voice(state: VoiceState) { this.send({ type: 'voice', state }); }
+  rtc(to: string, data: RtcSignal) { this.send({ type: 'rtc', to, data }); }
   stand() { this.send({ type: 'stand' }); }
 
   close() {

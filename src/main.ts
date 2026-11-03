@@ -5,6 +5,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { SparkRenderer } from '@sparkjsdev/spark';
 import { FLOWER_IDS, type FlowerId } from '../shared/offerings';
 import { FLOWERS, flowerCanvas, Offerings } from './offerings';
+import { Voice } from './voice';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import './style.css';
 import { applyDom, getLang, onLangChange, pick, setLang, t, type Key } from './i18n';
@@ -70,6 +71,21 @@ const RESIDENTS = temple.residents.map((r, i) => ({ ...r, ...RESIDENT_LOOKS[i % 
 const BURNER = world.site.burner.position;
 const BURNER_STAND = world.site.burner.stand;
 const offerings = new Offerings(world.scene, world.groundHeight, world.site.shrines ?? []);
+// proximity voice: hear visitors nearby while sound is on; speak with the mic on
+const fakeMic = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('fakeMic')) : 0;
+const voice = new Voice({
+  get audio() { return audio; },
+  net: () => net,
+  positions: () => new Map([...remotes].map(([id, r]) => [id, r.avatar.root.position])),
+  // dev: ?fakeMic=440 speaks a steady tone instead of the microphone
+  fakeMic: fakeMic ? (ctx) => {
+    const osc = new OscillatorNode(ctx, { frequency: fakeMic });
+    const dest = ctx.createMediaStreamDestination();
+    osc.connect(new GainNode(ctx, { gain: 0.3 })).connect(dest);
+    osc.start();
+    return dest.stream;
+  } : undefined,
+});
 const scene = world.scene;
 // draws Gaussian-splat objects (such as the Bodh Gaya image) within the normal scene render
 scene.add(new SparkRenderer({ renderer }));
@@ -116,7 +132,7 @@ player.onEyes = (on) => {
   $('btn-eyes').setAttribute('aria-pressed', String(on));
 };
 $('btn-eyes').addEventListener('click', () => player.setEyes(!player.eyes));
-if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings, audio } });
+if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings, audio, get voice() { return voice; } } });
 
 function leavePractice() {
   if (mode === 'bow') stopBow(false);
@@ -483,11 +499,14 @@ function onMessage(m: ServerMsg) {
         tag.querySelector('span')!.textContent = pick(NAMES[myName % NAMES.length]);
       }
       m.visitors.forEach(addRemote);
+      voice.reset(m.visitors.filter((v) => v.id !== m.selfId));
       $('people-cap').textContent = String(m.capacity);
       break;
     }
-    case 'join': addRemote(m.visitor); break;
-    case 'leave': removeRemote(m.id); break;
+    case 'join': addRemote(m.visitor); voice.setState(m.visitor.id, m.visitor.voice ?? 0); break;
+    case 'leave': removeRemote(m.id); voice.leave(m.id); break;
+    case 'voice': voice.setState(m.id, m.state); break;
+    case 'rtc': voice.signal(m.from, m.data).catch(() => {}); break;
     case 'move': {
       const r = remotes.get(m.id);
       if (!r) break;
@@ -570,6 +589,25 @@ function renderSound() {
   musicSel.replaceChildren(new Option(t('none'), ''), ...audio.manifest.music.map((m, i) => new Option(pick(m.title) || m.src, String(i), false, i === audio.musicIndex)));
 }
 audio.onChange(renderSound);
+audio.onChange(() => { if ((voice.state > 0) !== audio.enabled) voice.setListening(audio.enabled); });
+
+const micBtn = $('btn-mic');
+micBtn.hidden = !voice.supported;
+micBtn.addEventListener('click', async () => {
+  if (voice.micOn) return voice.setMic(false);
+  // speaking needs sound on, so voices nearby can answer
+  if (!audio.enabled) await audio.enable().catch(() => {});
+  if (!(await voice.setMic(true))) toast(t('micDenied'));
+  else toast(t('micOnHint'));
+});
+voice.onChange = () => {
+  micBtn.classList.toggle('on', voice.micOn);
+  micBtn.setAttribute('aria-pressed', String(voice.micOn));
+  micBtn.dataset.i18nLabel = voice.micOn ? 'micOff' : 'micOn';
+  micBtn.setAttribute('aria-label', t(micBtn.dataset.i18nLabel as Key));
+  micBtn.title = t(micBtn.dataset.i18nLabel as Key);
+};
+voice.onChange();
 $<HTMLSelectElement>('chant-select').addEventListener('change', (e) => {
   audio.chantIndex = Number((e.target as HTMLSelectElement).value);
   if (audio.chanting && !communal) audio.startChant(0);
@@ -818,6 +856,8 @@ function frame() {
   }
   residentAvatars.forEach((a, i) => { a.update(dt); placeTag(`resident:${i}`, a); });
   placeTag(selfTagId, me);
+  voice.update(me.root.position, camera);
+  for (const [id, el] of tags) el.classList.toggle('speaking', id === selfTagId ? voice.selfSpeaking : voice.speaking(id));
 
   $('btn-incense').hidden = mode === 'bow' || me.root.position.distanceTo(BURNER) > 3.6;
   world.update(dt, new Date());

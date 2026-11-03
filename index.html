@@ -34,6 +34,9 @@
         <button class="pill-btn icon" id="btn-eyes" data-i18n-label="eyesView" aria-pressed="false">
           <svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
         </button>
+        <button class="pill-btn icon mic" id="btn-mic" data-i18n-label="micOn" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" /><path class="mic-x" d="M4 4l16 16" /></svg>
+        </button>
         <button class="pill-btn icon" id="btn-sound" data-i18n-label="soundOn">
           <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="sound-x" d="M16 9l5 6M21 9l-5 6" /><path class="sound-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /></svg>
         </button>
@@ -98,6 +101,7 @@
         <label class="slider"><span><strong data-i18n="effects"></strong><small data-i18n="effectsSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="effects" /></label>
         <label class="slider"><span><strong data-i18n="chanting"></strong><small data-i18n="chantingSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="chant" /></label>
         <label class="slider"><span><strong data-i18n="music"></strong><small data-i18n="musicSub"></small></span><input type="range" min="0" max="1" step="0.01" data-bus="music" /></label>
+        <label class="slider"><span><strong data-i18n="voices"></strong><small data-i18n="voicesSub"></small></span><input type="range" min="0" max="1.5" step="0.01" data-bus="voices" /></label>
         <div class="toggle-row" id="bow-row"><span><strong data-i18n="bowStyle"></strong></span><select id="bow-select" class="select"></select></div>
         <div class="toggle-row"><span><strong data-i18n="chantPick"></strong></span><select id="chant-select" class="select"></select></div>
         <div class="toggle-row" id="music-row"><span><strong data-i18n="music"></strong></span><select id="music-select" class="select"></select></div>

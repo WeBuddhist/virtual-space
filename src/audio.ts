@@ -9,8 +9,8 @@ const SHARED_GAIN: Record<string, number> = { woodfish: 1.3, 'nga-drum': 1.15, '
 // Sounds come from the temple's audio manifest (recordings added in the local
 // audio studio). Anything not provided there is synthesized with Web Audio.
 
-export type Bus = 'ambient' | 'effects' | 'chant' | 'music';
-export const BUSES: Bus[] = ['ambient', 'effects', 'chant', 'music'];
+export type Bus = 'ambient' | 'effects' | 'chant' | 'music' | 'voices';
+export const BUSES: Bus[] = ['ambient', 'effects', 'chant', 'music', 'voices'];
 
 const saved = (() => {
   try { return JSON.parse(localStorage.getItem('webuddhist.audio') ?? '{}'); } catch { return {}; }
@@ -22,7 +22,7 @@ export class AudioEngine {
   ctx?: AudioContext;
   private master?: GainNode;
   private buses = {} as Record<Bus, GainNode>;
-  levels: Record<Bus, number> = { ambient: 0.6, effects: 0.8, chant: 0.7, music: 0.5, ...saved.levels };
+  levels: Record<Bus, number> = { ambient: 0.6, effects: 0.8, chant: 0.7, music: 0.5, voices: 1, ...saved.levels };
   background: boolean = saved.background ?? false;
   enabled = false;
   isDay = () => true;
@@ -104,6 +104,9 @@ export class AudioEngine {
     this.background = on;
     this.emit();
   }
+
+  /** where a sound source joins the mix (e.g. nearby visitors' voices) */
+  input(bus: Bus): AudioNode | undefined { return this.buses[bus]; }
 
   get effectsAudible() { return this.enabled && this.levels.effects > 0; }
 

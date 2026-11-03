@@ -10,6 +10,9 @@ interface Env {
   ASSETS: Fetcher;
   ROOM: DurableObjectNamespace<Room>;
   LOBBY: DurableObjectNamespace<Lobby>;
+  /** optional Cloudflare Realtime TURN key (wrangler secret put …); without it voice uses STUN only */
+  TURN_KEY_ID?: string;
+  TURN_KEY_API_TOKEN?: string;
 }
 
 const NAME_COUNT = 24;
@@ -29,6 +32,8 @@ interface Visitor {
   id: string; name: number; color: string;
   x: number; z: number; yaw: number;
   pose: string; seat: number | null;
+  /** proximity voice: 0 off, 1 listening (sound on), 2 speaking (mic live) */
+  voice?: 0 | 1 | 2;
 }
 /** per-socket state, kept as a hibernation attachment */
 interface Attachment { room: string; v: Visitor; lastMove: number; joined: number }
@@ -37,6 +42,27 @@ interface Attachment { room: string; v: Visitor; lastMove: number; joined: numbe
 // alarm sweeps sockets that went silent (e.g. a handshake abandoned mid-reload)
 const STALE_MS = 90_000;
 const SWEEP_MS = 60_000;
+
+/** a WebRTC offer, answer or ICE candidate relayed between two visitors */
+const RTC_MAX = 12_000;
+const STUN = [{ urls: 'stun:stun.cloudflare.com:3478' }];
+
+/** ICE servers for voice: short-lived Cloudflare TURN credentials when a key is set, else STUN */
+async function iceServers(env: Env) {
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return STUN;
+  try {
+    const res = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ttl: 6 * 3600 }),
+    });
+    if (!res.ok) return STUN;
+    const body = (await res.json()) as { iceServers?: unknown };
+    return body.iceServers ? [...STUN, ...[body.iceServers].flat()] : STUN;
+  } catch {
+    return STUN;
+  }
+}
 
 const finite = (n: unknown, lim: number): n is number => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= lim;
 
@@ -49,6 +75,9 @@ export default {
       const forward = new URL(req.url);
       forward.searchParams.set('room', room);
       return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(forward, req));
+    }
+    if (url.pathname === '/ice') {
+      return Response.json({ iceServers: await iceServers(env) }, { headers: { 'cache-control': 'no-store' } });
     }
     if (url.pathname === '/rooms') {
       const stored = await env.LOBBY.get(env.LOBBY.idFromName('lobby')).counts();
@@ -162,6 +191,23 @@ export class Room extends DurableObject<Env> {
         ws.serializeAttachment(a);
         this.broadcast({ type: 'seat', id: v.id, seat: null }, ws);
         break;
+      case 'voice': {
+        const state = m.state === 2 ? 2 : m.state === 1 ? 1 : 0;
+        if (state === (v.voice ?? 0)) break;
+        v.voice = state;
+        ws.serializeAttachment(a);
+        this.broadcast({ type: 'voice', id: v.id, state }, ws);
+        break;
+      }
+      case 'rtc': {
+        // relay connection setup to one other visitor in this room, never to oneself
+        if (typeof m.to !== 'string' || m.to === v.id || !m.data || typeof m.data !== 'object') break;
+        const data = JSON.stringify(m.data);
+        if (data.length > RTC_MAX) break;
+        const peer = this.sockets().find((s) => this.attachment(s)?.v.id === m.to);
+        try { peer?.send(`{"type":"rtc","from":${JSON.stringify(v.id)},"data":${data}}`); } catch { /* peer closing */ }
+        break;
+      }
       case 'leave':
         ws.close(1000, 'Leaving');
         await this.depart(ws);

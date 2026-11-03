@@ -11,6 +11,7 @@ export default defineConfig({
     proxy: {
       '/presence': { target: SERVER.replace(/^http/, 'ws'), ws: true },
       '/rooms': { target: SERVER },
+      '/ice': { target: SERVER },
     },
   },
 });

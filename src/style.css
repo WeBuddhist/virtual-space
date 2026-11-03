@@ -238,3 +238,10 @@ details .sub { line-height: 1.7; }
 .credits { margin: 18px 0 0; font-size: 12px; }
 .credits a { color: var(--mist-soft); text-decoration: underline; text-underline-offset: 3px; }
 .credits a:hover { color: var(--gold); }
+
+/* proximity voice: the mic button, and a soft ring on the tag of whoever is speaking */
+.pill-btn.mic .mic-x { display: none; }
+.pill-btn.mic:not(.on) .mic-x { display: block; }
+.pill-btn.mic.on { color: var(--lapis); background: #e05a47; }
+.pill-btn.mic.on svg { stroke: #fff; }
+.tag.speaking { box-shadow: 0 0 0 2px rgba(122, 214, 154, 0.9), 0 0 12px 2px rgba(122, 214, 154, 0.55); }
