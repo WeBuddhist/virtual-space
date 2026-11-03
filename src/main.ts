@@ -79,6 +79,9 @@ let seat: number | null = null;
 let palmsTimer = 0;
 let bowCycle = -1;
 let bowTime = 0;
+// each tradition bows its own way; the temple's first style is the default
+let bowStyle = temple.bowStyles[0];
+me.setBowStyle(bowStyle);
 
 const player = new Player(me, camera, world, renderer.domElement, {
   onCushion: (c) => requestSeat(c),
@@ -319,6 +322,7 @@ const residentAvatars = RESIDENTS.map((r, i) => {
   const c = world.cushions[r.seat];
   a.root.position.copy(c.position);
   a.root.rotation.y = c.yaw ?? Math.PI;
+  a.setBowStyle(temple.bowStyles[0]);
   a.setPose(r.pose ?? 'kneel');
   scene.add(a.root);
   makeTag(`resident:${i}`, r.name, r.color);
@@ -655,7 +659,7 @@ function frame() {
   }
   if (mode === 'bow') {
     bowTime += dt;
-    const cycle = Math.floor(bowTime / BOW_SECONDS);
+    const cycle = Math.floor(bowTime / BOW_SECONDS[bowStyle]);
     if (cycle !== bowCycle) { bowCycle = cycle; audio.bowl(); }
   }
   me.update(dt);

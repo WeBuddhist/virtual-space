@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TEMPLE_IDS } from '../shared/rooms';
 import { loadStatue } from './kit/statue';
+import { Avatar, type Pose } from './avatar';
+import type { BowStyle } from './rooms/types';
 
 const params = new URLSearchParams(location.search);
 const id = params.get('id') ?? 'bodhgaya';
@@ -66,7 +68,26 @@ for (const v of Object.keys(VIEWS)) {
   ui.append(b);
 }
 
-loadStatue(id, id === 'bodhgaya' || id === 'tibetan' ? 'tibetan-painted' : 'gilt').then((statue) => {
+const avatar = params.has('avatar') ? new Avatar() : null;
+if (avatar) {
+  scene.add(avatar.root);
+  controls.target.set(0, 0.55, 0);
+  camera.position.set(1.6, 1.0, 2.2);
+  const poses: (Pose | BowStyle)[] = ['idle', 'walk', 'kneel', 'beads', 'palms', 'tibetan-prostration', 'five-point', 'east-asian-bow', 'standing-bow'];
+  for (const p of poses) {
+    const b = document.createElement('button');
+    b.textContent = p;
+    b.onclick = () => {
+      if (p.includes('-')) { avatar.setPose('idle'); avatar.setBowStyle(p as BowStyle); avatar.setPose('bow'); }
+      else avatar.setPose(p as Pose);
+      avatar.speed = p === 'walk' ? 1 : 0;
+    };
+    ui.append(b);
+  }
+  const clock = new THREE.Clock();
+  renderer.setAnimationLoop(() => { avatar.update(clock.getDelta()); controls.update(); renderer.render(scene, camera); });
+}
+if (!avatar) loadStatue(id, id === 'bodhgaya' || id === 'tibetan' ? 'tibetan-painted' : 'gilt').then((statue) => {
   scene.add(statue);
   let tris = 0;
   statue.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) tris += (m.geometry.index?.count ?? 0) / 3; });
@@ -80,5 +101,7 @@ function resize() {
 }
 addEventListener('resize', resize);
 resize();
-setView(params.get('view') ?? 'front');
-renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+if (!avatar) {
+  setView(params.get('view') ?? 'front');
+  renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+}
