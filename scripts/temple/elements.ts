@@ -55,11 +55,12 @@ Materials: sandstone/stucco for the body, 'dark' inside niche recesses and the w
     budget: 80_000,
     brief: `\`export function build(): THREE.Group\` — the projecting entrance porch on the east face of the Mahabodhi temple. Its back (z = 0) is flush against the temple's front wall; it projects forward to about z = +4.2 and spans about x ±3.2, rising to about y = 9–10.
 
-It frames the main doorway: a tall carved stone portal (jambs and lintel with bands of carving), the pointed-arch entrance, niches with Buddha images on its face, and the decorative upper storey seen in the photos. The doorway is at x = 0: walkers pass through it along the z axis into the temple.
+It frames the main doorway: a tall carved stone portal (jambs and lintel with bands of carving), the pointed-arch entrance, niches with Buddha images on its face, and the decorative upper storey seen in the photos. The doorway is at x = 0: walkers pass through it along the z axis into the temple. It is a real opening: behind z = 0 the temple's own passage runs on to the sanctum, and visitors must see the lit main image through it, so nothing may close or cover the doorway — no door leaves, screens or dark backdrops.
 
-Materials: sandstone/stucco, 'gold' for the gilded door frame, 'dark' for the opening's depth.`,
+Materials: sandstone/stucco, 'gold' for the gilded door frame, 'dark' only on the porch's inner side walls and soffit.`,
     keepClear: [
-      { name: 'the walkway through the doorway', box: { x: [-0.85, 0.85], y: [0.05, 3.35], z: [-0.2, 4.6] } },
+      // reaches back through the temple's passage to the sanctum, behind the porch
+      { name: 'the walkway through the doorway and on into the temple', box: { x: [-0.85, 0.85], y: [0.05, 3.35], z: [-4.6, 4.6] } },
     ],
     refs: [
       `${W}facade/east-front-full-01.jpg`, `${W}facade/entrance-doorway-stone-frame-01.jpg`, `${W}facade/east-facade-base-01.jpg`, `${W}facade/portal-upper-carvings-01.jpg`,

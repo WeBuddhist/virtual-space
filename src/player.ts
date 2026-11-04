@@ -5,6 +5,8 @@ import type { Box2, Cushion, World } from './world';
 // matched to the captured walk cycle so the feet do not slide
 const SPEED = 1.5;
 const RADIUS = 0.22;
+/** how close the orbit camera comes to a wall or roof; under RADIUS, so the avatar is never inside one */
+const CAM_CLEAR = 0.18;
 
 export interface PlayerEvents {
   onCushion(c: Cushion): void;
@@ -158,6 +160,32 @@ export class Player {
     this.walkTo(hit.point);
   }
 
+  /** how far (0…1) along look → cam the camera gets before it enters a camera solid */
+  private cameraReach(look: THREE.Vector3, cam: THREE.Vector3) {
+    let reach = 1;
+    for (const b of this.world.site.cameraSolids ?? []) {
+      // slab test of the segment against the box, grown by the camera's clearance
+      let t0 = 0, t1 = 1;
+      for (const [p, q, lo, hi] of [
+        [look.x, cam.x, b.x0 - CAM_CLEAR, b.x1 + CAM_CLEAR],
+        [look.z, cam.z, b.z0 - CAM_CLEAR, b.z1 + CAM_CLEAR],
+        [look.y, cam.y, (b.y0 ?? -Infinity) - CAM_CLEAR, Infinity],
+      ]) {
+        const d = q - p;
+        if (Math.abs(d) < 1e-9) {
+          if (p < lo || p > hi) t0 = Infinity;
+          continue;
+        }
+        const a = (lo - p) / d, c = (hi - p) / d;
+        t0 = Math.max(t0, Math.min(a, c));
+        t1 = Math.min(t1, Math.max(a, c));
+      }
+      // a box the avatar already stands in (it can't, by the colliders) is ignored
+      if (t0 < t1 && t0 > 0) reach = Math.min(reach, t0);
+    }
+    return reach;
+  }
+
   private blocked(x: number, z: number, boxes: Box2[]) {
     for (const b of boxes) {
       if (x > b.x0 - RADIUS && x < b.x1 + RADIUS && z > b.z0 - RADIUS && z < b.z1 + RADIUS) return true;
@@ -255,6 +283,9 @@ export class Player {
     const want = look.clone().add(off);
     want.y = Math.max(want.y, 0.3);
     this.camera.position.lerp(want, 1 - Math.exp(-dt * 10));
+    // walls and roofs pull the camera in at once; it eases back out as they clear
+    const reach = this.cameraReach(look, this.camera.position);
+    if (reach < 1) this.camera.position.lerp(look, 1 - reach);
     const tilt = orbit - this.camPitch; // how far to look up past the avatar
     if (tilt > 0) {
       // continue smoothly from the angle at which the camera sees the head

@@ -862,7 +862,8 @@ export function build(): THREE.Group {
   }
   putBox(2.50, 0.20, 3.70, 0, 3.53, 1.85, 'stucco');
   putBox(2.36, 0.04, 3.58, 0, 3.42, 1.80, 'dark');
-  put(new THREE.PlaneGeometry(2.34, 3.58), 'dark', pose(0, 1.79, -0.22));
+  // (hand fix: a dark plane here at z -0.22 shut the doorway, hiding the passage and the
+  // main image behind it; the keep-clear box now reaches into the temple, see elements.ts)
 
   // Large rounded lower niches with carved stelae, halos and standing images.
   const lowerWall = rectWithArchHole(1.82, 3.36, 1.10, 2.55, 0.38, 0.28, false);

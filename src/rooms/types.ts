@@ -64,6 +64,11 @@ export interface Site {
   groundHeight(x: number, z: number): number;
   /** solid buildings that hide name tags behind them */
   occluders?: THREE.Object3D[];
+  /**
+   * Masonry the orbit camera may not pass into: walls (full height) and roofs (from y0
+   * up). Meeting one, the camera pulls in toward the avatar instead.
+   */
+  cameraSolids?: (Box2 & { y0?: number })[];
   /** shrines where visitors offer flowers and incense */
   shrines?: OfferingSpot[];
   /**

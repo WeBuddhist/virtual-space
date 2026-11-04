@@ -88,6 +88,12 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
     bounds: BOUNDS,
     groundHeight: () => 0,
     occluders: [tower.group],
+    // the tower and porch walls, the low ceiling over porch and passage, the sanctum's
+    cameraSolids: [
+      ...TOWER_COLLIDERS,
+      { x0: SANCTUM.x1, x1: 4.2, z0: -1.25, z1: 1.25, y0: 3.3 },
+      { x0: SANCTUM.x0, x1: SANCTUM.x1, z0: -SANCTUM.halfW, z1: SANCTUM.halfW, y0: SANCTUM.ceiling },
+    ],
     // visitors walk the same pradakshina path as the pilgrims, inside the railing; from
     // outside they come in through the east gate
     kora: {
