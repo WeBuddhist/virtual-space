@@ -13,6 +13,8 @@ import { TEMPLES } from './rooms';
 import { activeService, isDay, templeClock } from './rooms/clock';
 import type { BowStyle } from './rooms/types';
 import { buildWorld, type Cushion } from './world';
+import { loadedPhotos, photosPending } from './kit/textures';
+import { statuesPending } from './kit/statue';
 import { Avatar, BOW_SECONDS, DEFAULT_LOOK, PALMS_SECONDS, type Pose } from './avatar';
 import { Player } from './player';
 import { Net, fetchRoomCounts, type NetPose, type ServerMsg, type Visitor } from './net';
@@ -38,6 +40,7 @@ const RESIDENT_LOOKS = [{ name: 1, color: '#bdc5ad' }, { name: 9, color: '#cbbda
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const params = new URLSearchParams(location.search);
+(performance as any).__t0 = performance.now();
 let room = params.get('room') ?? roomId('bodhgaya');
 if (!parseRoom(room)) room = roomId('bodhgaya');
 const temple = TEMPLES[parseRoom(room)!.temple];
@@ -48,6 +51,8 @@ const roomLabel = (id: string) => {
 
 // ---- renderer and world -------------------------------------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+// production skips shader error checks: every program compile is faster
+renderer.debug.checkShaderErrors = import.meta.env.DEV;
 renderer.setPixelRatio(Math.min(2, devicePixelRatio));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -127,7 +132,7 @@ player.onEyes = (on) => {
   $('btn-eyes').setAttribute('aria-pressed', String(on));
 };
 $('btn-eyes').addEventListener('click', () => player.setEyes(!player.eyes));
-if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings, audio } });
+if (import.meta.env.DEV) Object.assign(window, { __ritro: { player, me, world, camera, offerings, audio, renderer } });
 
 function leavePractice() {
   if (koraOn) stopKora();
@@ -850,6 +855,29 @@ const tmp = new THREE.Vector3();
 const clock = new THREE.Clock();
 let first = true;
 
+// Adaptive quality: while frames run long, step the render resolution down (bloom goes
+// at the lowest step); with sustained headroom, step back up. One step at a time,
+// a few seconds apart, so it settles instead of oscillating.
+const PR0 = Math.min(2, devicePixelRatio || 1);
+const PR_STEPS = [...new Set([PR0, 1.5, 1.25, 1].filter((v) => v <= PR0))];
+let qStep = 0, qTime = 0, qFrames = 0, qCooldown = 0;
+function adaptQuality(raw: number) {
+  qTime += raw; qFrames++; qCooldown -= raw;
+  if (qTime < 2 || qCooldown > 0) return;
+  const avg = qTime / qFrames;
+  qTime = 0; qFrames = 0;
+  let next = qStep;
+  if (avg > 1 / 45 && qStep < PR_STEPS.length - 1) next = qStep + 1;
+  else if (avg < 1 / 57 && qCooldown < -8) next = qStep - 1;
+  if (next === qStep || next < 0) return;
+  qStep = next;
+  qCooldown = 4;
+  renderer.setPixelRatio(PR_STEPS[qStep]);
+  composer.setPixelRatio(PR_STEPS[qStep]);
+  bloom.enabled = qStep < PR_STEPS.length - 1;
+  resize();
+}
+
 // line-of-sight checks for name tags are spread out: each tag is re-checked a few times a second
 const occlusionRay = new THREE.Raycaster();
 const hiddenBehind = new Map<string, { at: number; hidden: boolean }>();
@@ -885,7 +913,9 @@ function placeTag(id: string, avatar: Avatar) {
 }
 
 function frame() {
-  const dt = Math.min(clock.getDelta(), 0.1);
+  const rawDt = clock.getDelta();
+  const dt = Math.min(rawDt, 0.1);
+  adaptQuality(rawDt);
   const walking = player.update(dt);
   // the walk gave up on a point it couldn't reach (something in the way): go on to the next
   if (koraOn && kora && !player.target) {
@@ -935,6 +965,7 @@ function frame() {
   composer.render();
   if (first) {
     first = false;
+    console.info(`load: first frame rendered at ${(performance.now() - (performance as any).__t0).toFixed(0)}ms`);
     $('loading').classList.add('fade');
     setTimeout(() => $('loading').remove(), 900);
   }
@@ -946,4 +977,22 @@ $('btn-incense').addEventListener('click', offerIncense);
 setTimeout(() => { $('hint').style.opacity = '0'; }, 9000);
 renderLang();
 connect();
+
+// Settle the scene behind the loading veil: wait for the photo textures and statue
+// models the site requested, pre-upload every texture to the GPU and compile all
+// shaders, so walking around afterwards does not hitch on mid-play loads.
+const tSettle = performance.now();
+await Promise.race([
+  Promise.allSettled([...photosPending(), ...statuesPending()]),
+  new Promise((r) => setTimeout(r, 9000)),
+]);
+const tAssets = performance.now();
+for (const t of loadedPhotos()) renderer.initTexture(t);
+await renderer.compileAsync(scene, camera);
+// warm-up frame behind the veil: compiles the programs compileAsync does not cover
+// (shadow-map depth variants, bloom and output passes, splat renderer) and renders
+// the shadow map, so the visitor never feels those compiles as a freeze mid-play
+world.update(0, new Date());
+composer.render();
+console.info(`load: world ${(tSettle - (performance as any).__t0).toFixed(0)}ms, assets ${(tAssets - tSettle).toFixed(0)}ms, gpu ${(performance.now() - tAssets).toFixed(0)}ms`);
 frame();

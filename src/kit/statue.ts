@@ -10,6 +10,11 @@ export type FaceStyle = 'tibetan-painted' | 'gilt';
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map<string, Promise<THREE.Group>>();
 
+/** statue loads in flight (main.ts awaits them before the first frame) */
+export function statuesPending(): Promise<unknown>[] {
+  return [...cache.values()];
+}
+
 /** face-UV space: 0.26 m square, x −0.13…0.13 around the head, y −0.15…0.11 from its centre */
 const S = 1024;
 const px = (x: number) => ((x + 0.13) / 0.26) * S;
