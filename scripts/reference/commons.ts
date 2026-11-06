@@ -18,6 +18,15 @@ const TEMPLES: Record<string, Sources> = {
     grounds: ['Buddhapada Shrine, Mahabodhi Temple', 'Butter Lamp House in Bodh Gaya', 'Mucalinda Lake, Bodh Gaya'],
     history: ['History of the Mahabodhi Temple'],
   },
+  mahayana: {
+    statue: ['Front views of the Todaiji Daibutsu', 'Todaiji Daibutsu'],
+    interior: ['Interior of the Golden Hall, Todaiji'],
+  },
+  tibetan: {
+    statues: ['Statues of the Buddha at Namdroling Monastery'],
+    interior: ['Interior of Padmasambhava Buddhist Vihara'],
+    monastery: ['Namdroling Monastery'],
+  },
 };
 
 const API = 'https://commons.wikimedia.org/w/api.php';

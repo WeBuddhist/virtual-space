@@ -1,8 +1,19 @@
 {
   "version": 1,
   "ambient": [],
-  "chants": [],
+  "chants": [
+    {
+      "src": "drubchen-puja-namdroling.mp3",
+      "title": {
+        "en": "Drubchen puja at Namdroling Monastery",
+        "bo": "རྣམ་གྲོལ་གླིང་གི་སྒྲུབ་ཆེན།"
+      },
+      "credit": "KD Memory Clips (YouTube)",
+      "license": "YouTube standard license",
+      "volume": 0.8
+    }
+  ],
   "music": [],
   "instruments": {},
-  "services": { "dawn": null, "evening": null }
+  "services": { "dawn": "drubchen-puja-namdroling.mp3", "evening": "drubchen-puja-namdroling.mp3" }
 }

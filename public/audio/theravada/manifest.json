@@ -1,8 +1,19 @@
 {
   "version": 1,
   "ambient": [],
-  "chants": [],
+  "chants": [
+    {
+      "src": "evening-chanting-chinnarat.mp3",
+      "title": {
+        "en": "Monks chanting at Wat Phra Si Rattana Mahathat",
+        "bo": "ཝ་ཐི་ཕྲ་སི་རཏྣ་མ་ཧཱ་ཐཱ་ཐིའི་དགེ་སློང་གི་ཁ་འདོན།"
+      },
+      "credit": "fully being (YouTube)",
+      "license": "YouTube standard license",
+      "volume": 0.8
+    }
+  ],
   "music": [],
   "instruments": {},
-  "services": { "dawn": null, "evening": null }
+  "services": { "dawn": "evening-chanting-chinnarat.mp3", "evening": "evening-chanting-chinnarat.mp3" }
 }

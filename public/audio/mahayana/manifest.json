@@ -1,8 +1,19 @@
 {
   "version": 1,
   "ambient": [],
-  "chants": [],
+  "chants": [
+    {
+      "src": "shunie-chant-todaiji.mp3",
+      "title": {
+        "en": "Shuni-e chant at Tōdai-ji",
+        "bo": "ཐོ་དའི་ཇིའི་ཤུ་ནི་ཨེའི་གསུང་དབྱངས།"
+      },
+      "credit": "Yamabiko Factory (YouTube)",
+      "license": "YouTube standard license",
+      "volume": 0.8
+    }
+  ],
   "music": [],
   "instruments": {},
-  "services": { "dawn": null, "evening": null }
+  "services": { "dawn": "shunie-chant-todaiji.mp3", "evening": "shunie-chant-todaiji.mp3" }
 }

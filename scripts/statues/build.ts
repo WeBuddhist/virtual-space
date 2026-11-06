@@ -23,6 +23,16 @@ const PRESETS: Record<string, Preset> = {
     options: { mudra: 'bhumisparsha', robe: 'one-shoulder', hair: 'curls', ushnisha: 'jewel', crown: false, offeredRobe: false, build: 1, seat: 'lotus', almsBowl: 'dark' },
     palette: { gilt: GOLD, hair: { color: 0x2a4f9e, metallic: 0.2, roughness: 0.5 } },
   },
+  // Namdroling's flanking figures (the site adds Guru Rinpoche's lotus hat, khatvanga and
+  // skull cup, and Amitayus's vase, at runtime): both gilded, hands in the lap
+  'tibetan-guru': {
+    options: { mudra: 'dhyana', robe: 'both', hair: 'smooth', ushnisha: 'bump', crown: false, offeredRobe: false, build: 1.08, seat: 'lotus' },
+    palette: { gilt: GOLD, hair: GOLD },
+  },
+  'tibetan-amitayus': {
+    options: { mudra: 'dhyana', robe: 'both', hair: 'smooth', ushnisha: 'jewel', crown: true, offeredRobe: false, build: 1, seat: 'lotus' },
+    palette: { gilt: GOLD, hair: { color: 0x2a4f9e, metallic: 0.2, roughness: 0.5 }, jewel: { color: 0x2a5fb8, metallic: 0.3, roughness: 0.15 } },
+  },
   theravada: {
     options: { mudra: 'bhumisparsha', robe: 'one-shoulder', hair: 'curls', ushnisha: 'flame', crown: false, offeredRobe: false, build: 0.92, seat: 'none' },
     palette: { gilt: { color: 0xeab84a, metallic: 1, roughness: 0.22 }, hair: { color: 0xd9aa44, metallic: 1, roughness: 0.3 } },

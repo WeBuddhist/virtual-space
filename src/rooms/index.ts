@@ -1,12 +1,14 @@
 import { SEATING, TEMPLE_IDS, type TempleId } from '../../shared/rooms';
 import { bodhgayaSite } from './sites/bodhgaya';
-import { genericSite } from './sites/generic';
+import { mahayanaSite } from './sites/mahayana';
+import { theravadaSite } from './sites/theravada';
+import { tibetanSite } from './sites/tibetan';
 import type { Resident, TempleDef } from './types';
 
 const seated = (seats: number[]): Resident[] => seats.map((seat) => ({ seat }));
 
-// The temple registry. Each entry is one kind of room; bespoke sites replace
-// `genericSite` as each temple is researched and built (see the temple-room skill).
+// The temple registry. Each entry is one kind of room; each points at its bespoke site
+// under sites/<id>/ (see the temple-room skill).
 
 const ALL_INSTRUMENTS = ['singing-bowl', 'bell-dorje', 'damaru', 'nga-drum', 'rolmo', 'gong', 'temple-bell', 'woodfish', 'dharma-drum'] as const;
 
@@ -42,24 +44,33 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
   tibetan: {
     id: 'tibetan',
     tradition: 'vajrayana',
-    name: { en: 'Namdroling', bo: 'རྣམ་གྲོལ་གླིང་།' },
-    place: { en: 'Golden Temple, Bylakuppe, India', bo: 'གསེར་མདོག་ལྷ་ཁང་། བྱི་ལ་ཀུབ། རྒྱ་གར།' },
+    // Golden Temple (Padmasambhava Buddhist Vihara), Namdroling, Bylakuppe
+    // (docs/rooms/tibetan/reference.md). Tibetan names marked (review) await a native speaker.
+    name: { en: 'Namdroling Monastery', bo: 'རྣམ་གྲོལ་གླིང་།' },
+    place: { en: 'Golden Temple, Bylakuppe, Karnataka, India', bo: 'གསེར་ཁང་། བྱི་ལ་ཀུབ། རྒྱ་གར།' }, // གསེར་ཁང་ (review)
     hall: {
-      name: { en: 'Hall of Great Compassion', bo: 'ཐུགས་རྗེ་ཆེན་པོའི་ལྷ་ཁང་།' },
-      signboard: 'ཐུགས་རྗེ་ཆེན་པོའི་ལྷ་ཁང་',
-      pillarColor: 0x8a2a1c, wallColor: 0xe9e1cf, roofColor: 0x3c3a36,
+      name: { en: 'Padmasambhava Buddhist Vihara (Golden Temple)', bo: 'པདྨ་འབྱུང་གནས་ཀྱི་ལྷ་ཁང་།' }, // (review)
+      // the monastery's full name over the gate: Thegchog Namdrol Shedrub Dargye Ling
+      signboard: 'ཐེག་མཆོག་རྣམ་གྲོལ་བཤད་སྒྲུབ་དར་རྒྱས་གླིང་',
+      pillarColor: 0xb3261e, wallColor: 0xede2c0, roofColor: 0xd6a632,
     },
+    // the three great gilded images, each about 18 m: Guru Rinpoche on the viewer's left,
+    // Shakyamuni in the centre, Amitayus on the viewer's right. x is hall-local; facing the
+    // altar (+z) the viewer's left is +x.
     statues: [
-      { id: 'manjushri', name: { en: 'Manjushri', bo: 'འཇམ་དཔལ་དབྱངས།' }, role: { en: 'Attendant of wisdom', bo: 'ཤེས་རབ་ཀྱི་ཉེ་གནས།' }, x: -2.2, scale: 0.78, tint: 0xd8a640, halo: 0x5d8fb8 },
-      { id: 'shakyamuni', name: { en: 'Shakyamuni Buddha', bo: 'ཤཱཀྱ་ཐུབ་པ།' }, role: { en: 'The Teacher', bo: 'སྟོན་པ།' }, x: 0, scale: 1, tint: 0xe0b04a, halo: 0xc9822e },
-      { id: 'chenrezig', name: { en: 'Avalokiteshvara', bo: 'སྤྱན་རས་གཟིགས།' }, role: { en: 'Attendant of compassion', bo: 'ཐུགས་རྗེའི་ཉེ་གནས།' }, x: 2.2, scale: 0.78, tint: 0xf1e6d2, halo: 0x6ea37a },
+      { id: 'guru-rinpoche', name: { en: 'Guru Padmasambhava', bo: 'གུ་རུ་པདྨ་འབྱུང་གནས།' }, role: { en: 'Guru Rinpoche, the Lotus-Born', bo: 'གུ་རུ་རིན་པོ་ཆེ།' }, x: 5.75, scale: 0.95, tint: 0xd9a93a, halo: 0x2e8c8a },
+      { id: 'shakyamuni', name: { en: 'Shakyamuni Buddha', bo: 'ཤཱཀྱ་ཐུབ་པ།' }, role: { en: 'The Teacher', bo: 'སྟོན་པ།' }, x: 0, scale: 1, tint: 0xd9a93a, halo: 0x2e8c8a },
+      { id: 'amitayus', name: { en: 'Buddha Amitayus', bo: 'ཚེ་དཔག་མེད།' }, role: { en: 'Buddha of Long Life', bo: 'ཚེ་ལྷ།' }, x: -5.75, scale: 0.95, tint: 0xd9a93a, halo: 0x2e8c8a },
     ],
-    instruments: ['singing-bowl', 'bell-dorje', 'damaru', 'nga-drum', 'rolmo'],
-    bowStyles: ['tibetan-prostration'],
+    instruments: ['bell-dorje', 'damaru', 'nga-drum', 'rolmo', 'singing-bowl'],
+    bowStyles: ['tibetan-prostration', 'five-point'],
     services: [{ kind: 'dawn', hour: 5, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
     timeZone: 'Asia/Kolkata',
-    residents: seated(SEATING.tibetan.residents),
-    buildSite: genericSite,
+    // Namdroling monks in maroon robes and saffron shirts, on the benches facing the aisle
+    residents: SEATING.tibetan.residents.map((seat, i) => ({ seat, robe: 0x7a1f2b, shirt: 0xf2a33a, pose: i % 2 ? 'beads' : 'kneel' })),
+    // tropical blue sky with big cumulus over lawns and areca country
+    sky: { dayTop: 0x5f9bd6, dayBottom: 0xe4eef4, fog: 0xd9e6ee, fogNear: 70, fogFar: 380 },
+    buildSite: tibetanSite,
   },
   theravada: {
     id: 'theravada',
@@ -67,19 +78,22 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     name: { en: 'Wat Phra Si Rattana Mahathat', bo: 'ཝ་ཐི་ཕྲ་སི་རཏྣ་མ་ཧཱ་ཐཱ་ཐི།' },
     place: { en: 'Phra Buddha Chinnarat, Phitsanulok, Thailand', bo: 'ཕི་ཙ་ནུ་ལོག ཐེ་ལནྜ།' },
     hall: {
-      name: { en: 'Ordination Hall', bo: 'བསྙེན་རྫོགས་ཁང་།' },
+      // the image's viharn (not the ubosot); Tibetan to be reviewed by a native editor
+      name: { en: 'Viharn of Phra Buddha Chinnarat', bo: 'སངས་རྒྱས་རྒྱལ་བའི་རྒྱལ་པོའི་ལྷ་ཁང་།' },
       signboard: 'ཐེ་ལནྜའི་ལྷ་ཁང་',
       pillarColor: 0xe6e0d4, wallColor: 0xf3eee4, roofColor: 0x8e2a1e,
     },
     statues: [
-      { id: 'shakyamuni', name: { en: 'Buddha', bo: 'སངས་རྒྱས།' }, role: { en: 'Main image', bo: 'གཙོ་བོའི་སྐུ།' }, x: 0, scale: 1.1, tint: 0xe5b84a, halo: 0xd19a36 },
+      { id: 'shakyamuni', name: { en: 'Phra Buddha Chinnarat', bo: 'སངས་རྒྱས་རྒྱལ་བའི་རྒྱལ་པོ།' }, role: { en: 'Main image', bo: 'གཙོ་བོའི་སྐུ།' }, x: 0, scale: 1.1, tint: 0xd9a83a, halo: 0xd19a36 },
     ],
     instruments: ['gong', 'temple-bell', 'singing-bowl'],
     bowStyles: ['five-point'],
     services: [{ kind: 'dawn', hour: 5, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
     timeZone: 'Asia/Bangkok',
     residents: seated(SEATING.theravada.residents),
-    buildSite: genericSite,
+    // hazy tropical sky over the river plain
+    sky: { dayTop: 0x92b8d8, dayBottom: 0xdde8ee, fog: 0xd3dfe6, fogNear: 80, fogFar: 380 },
+    buildSite: theravadaSite,
   },
   mahayana: {
     id: 'mahayana',
@@ -87,19 +101,24 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     name: { en: 'Tōdai-ji', bo: 'ཐོ་དའི་ཇི།' },
     place: { en: 'Great Buddha Hall, Nara, Japan', bo: 'སངས་རྒྱས་ཆེན་པོའི་ལྷ་ཁང་། ན་ར། རི་པིན།' },
     hall: {
-      name: { en: 'Main Buddha Hall', bo: 'གཙོ་བོའི་ལྷ་ཁང་།' },
+      // Daibutsuden; Tibetan rendering flagged for native review
+      name: { en: 'Great Buddha Hall', bo: 'སངས་རྒྱས་ཆེན་པོའི་ལྷ་ཁང་།' },
       signboard: 'ཐེག་ཆེན་ལྷ་ཁང་',
-      pillarColor: 0x9b2d20, wallColor: 0xe8dcc4, roofColor: 0x34363a,
+      pillarColor: 0x8a4a34, wallColor: 0xece5d6, roofColor: 0x55585c,
     },
     statues: [
-      { id: 'shakyamuni', name: { en: 'Buddha', bo: 'སངས་རྒྱས།' }, role: { en: 'Main image', bo: 'གཙོ་བོའི་སྐུ།' }, x: 0, scale: 1.1, tint: 0xd9aa48, halo: 0xb8863a },
+      // Rushana-butsu (Vairocana): dark bronze, gilded halo
+      { id: 'vairocana', name: { en: 'Vairocana Buddha', bo: 'རྣམ་པར་སྣང་མཛད།' }, role: { en: 'Main image', bo: 'གཙོ་བོའི་སྐུ།' }, x: 0, scale: 1.1, tint: 0x2e2a22, halo: 0xc9a24a },
     ],
-    instruments: ['woodfish', 'temple-bell', 'dharma-drum', 'singing-bowl'],
-    bowStyles: ['east-asian-bow', 'standing-bow'],
-    services: [{ kind: 'dawn', hour: 4, minute: 0 }, { kind: 'evening', hour: 18, minute: 0 }],
+    instruments: ['temple-bell', 'singing-bowl', 'gong', 'dharma-drum', 'woodfish'],
+    bowStyles: ['standing-bow', 'east-asian-bow'],
+    // morning gongyō and the service at closing (times uncertain; see the reference)
+    services: [{ kind: 'dawn', hour: 7, minute: 0 }, { kind: 'evening', hour: 17, minute: 30 }],
     timeZone: 'Asia/Tokyo',
     residents: seated(SEATING.mahayana.residents),
-    buildSite: genericSite,
+    // soft hazy Nara light; the hall is 57 m across, so the haze starts far out
+    sky: { dayTop: 0x8fb4dc, dayBottom: 0xdde6ea, fog: 0xd6dfe2, fogNear: 110, fogFar: 560 },
+    buildSite: mahayanaSite,
   },
 };
 
