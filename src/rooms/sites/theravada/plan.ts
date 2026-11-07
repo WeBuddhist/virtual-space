@@ -25,11 +25,15 @@ export const HALL = {
 export const PORCH = { x0: -5, x1: -HALL.wall, halfW: 5.2 };
 export const STEPS = { x0: -6.3, x1: PORCH.x0, halfW: 2.7 };
 
-/** the pedestal (chukchi) and the image on it */
-export const PEDESTAL = { x0: 31.2, x1: 35.0, halfW: 2.7, top: FLOOR + 1.9 };
-export const IMAGE = { x: 33.3, base: PEDESTAL.top, height: 3.7 };
+/** the pedestal (chukchi): the image's tier, and a lower step in front of it */
+export const PEDESTAL = { x0: 32.6, x1: 35.6, halfW: 2.7, top: FLOOR + 1.9 };
+export const PEDESTAL_STEP = { x0: 31.0, x1: 32.6, halfW: 3.0, top: FLOOR + 1.0 };
+/** the plane of the aureole, which stands at the back of the pedestal */
+export const AUREOLE_X = 35.0;
+/** the image: x is its face (the knees reach about 33.1), base the top of the pedestal */
+export const IMAGE = { x: 34.2, base: PEDESTAL.top, height: 3.7 };
 /** where kneeling visitors look: the image's face */
-export const IMAGE_FACE = new THREE.Vector3(IMAGE.x - 0.3, IMAGE.base + 2.9, 0);
+export const IMAGE_FACE = new THREE.Vector3(IMAGE.x, IMAGE.base + 2.95, 0);
 /** the railing that keeps devotees back, and the offering table just beyond it */
 export const RAIL_X = 27.4;
 export const TABLE = { x0: 28.0, x1: 28.9, halfW: 1.7, top: FLOOR + 0.8 };
@@ -43,7 +47,15 @@ export const CLOISTER = { x0: 37.2, x1: 68.4, halfW: 13.8, depth: 3.2 };
 
 export const BURNER_AT = new THREE.Vector3(-12, 0, 4.2);
 
-export const BOUNDS = { x0: -46, x1: 76, z0: -34, z1: 34 };
+/** east of the cloister: the Phra Attharot (its face plane; it faces east) and the ruined
+ * nine-bay viharn before it, with its two rows of broken pillars */
+export const ATTHAROT = { x: 82 };
+export const RUINS = { x0: 84, x1: 106, halfW: 8.5, colZ: 5.2 };
+/** the three bodhi trees (Pho Sam Sao) south of the hall, and the bell tower by the forecourt */
+export const BODHI: [number, number][] = [[18, -25], [25, -28.5], [31, -24.5]];
+export const BELL_TOWER = { x: -20, z: 13.5 };
+
+export const BOUNDS = { x0: -46, x1: 110, z0: -34, z1: 34 };
 
 /** the viharn's outer wall line (porch excluded) */
 export const OUTER = { x0: HALL.x0 - HALL.wall, x1: HALL.x1 + HALL.wall, halfW: HALL.halfW + HALL.wall };

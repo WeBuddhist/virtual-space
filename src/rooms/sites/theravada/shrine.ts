@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { SplatMesh } from '@sparkjsdev/spark';
 import { loadStatue } from '../../../kit/statue';
 import type { Box2 } from '../../types';
-import { FLOOR, HALL, IMAGE, IMAGE_FACE, PEDESTAL, RAIL_X, TABLE } from './plan';
-import { boxAt, canvasTex, cutout, merged, panel, seatedBuddhaGeometry, tex } from './util';
+import { AUREOLE_X, FLOOR, HALL, IMAGE, IMAGE_FACE, PEDESTAL, PEDESTAL_STEP, RAIL_X, TABLE } from './plan';
+import { boxAt, canvasTex, cutout, merged, panel, tex } from './util';
 
 // The east end of the nave: the Phra Buddha Chinnarat on its gilded chukchi pedestal,
 // framed by the flame-edged naga aureole against a black lacquer wall sown with gold
@@ -14,42 +14,12 @@ import { boxAt, canvasTex, cutout, merged, panel, seatedBuddhaGeometry, tex } fr
 
 const gold = new THREE.MeshStandardMaterial({ color: 0xd9a83a, metalness: 1, roughness: 0.26 });
 const deepGold = new THREE.MeshStandardMaterial({ color: 0xb8862c, metalness: 1, roughness: 0.34 });
-const bronze = new THREE.MeshStandardMaterial({ color: 0x4a3a28, metalness: 0.8, roughness: 0.45 });
 const red = new THREE.MeshStandardMaterial({ color: 0x6e1712, roughness: 0.5 });
 const darkWood = new THREE.MeshStandardMaterial({ color: 0x3a2214, roughness: 0.5 });
 
 const BACK_X = HALL.x1 - 0.12;
-/** whether public/models/statues/theravada.spz exists yet */
-const SPLAT = false;
-/** the relief's back plane (its aureole), a little in front of the lacquer wall */
-const RELIEF_BACK_X = HALL.x1 - 1.0;
 /** the relief is built 4.3 m tall (lap 3.1 m); a touch larger reads better down the long nave */
 const RELIEF_SCALE = 1.2;
-
-/** a standing disciple in anjali, gilded, on a vase-shaped stand */
-function disciple() {
-  const parts: THREE.BufferGeometry[] = [];
-  parts.push(new THREE.LatheGeometry([
-    new THREE.Vector2(0.3, 0), new THREE.Vector2(0.34, 0.1), new THREE.Vector2(0.22, 0.5), new THREE.Vector2(0.3, 0.95), new THREE.Vector2(0.4, 1.05), new THREE.Vector2(0.38, 1.12),
-  ], 16));
-  parts.push(new THREE.CylinderGeometry(0.2, 0.26, 1.3, 14).translate(0, 1.12 + 0.65, 0)); // robed body
-  parts.push(new THREE.CylinderGeometry(0.21, 0.19, 0.4, 14).translate(0, 2.55, 0)); // chest
-  parts.push(new THREE.SphereGeometry(0.13, 14, 10).scale(1, 1.15, 1).translate(0, 2.95, 0));
-  parts.push(new THREE.BoxGeometry(0.08, 0.26, 0.05).translate(0, 2.55, 0.24)); // joined palms
-  const g = merged(parts, gold).geometry;
-  return g;
-}
-
-/** a small bronze guardian figure (Thao Wessuwan or Alavaka) about 0.8 m tall, holding a club */
-function guardian() {
-  const parts: THREE.BufferGeometry[] = [];
-  parts.push(new THREE.CylinderGeometry(0.1, 0.16, 0.42, 10).translate(0, 0.21, 0));
-  parts.push(new THREE.CylinderGeometry(0.15, 0.11, 0.24, 10).translate(0, 0.54, 0));
-  parts.push(new THREE.SphereGeometry(0.085, 10, 8).translate(0, 0.73, 0));
-  parts.push(new THREE.ConeGeometry(0.07, 0.24, 8).translate(0, 0.9, 0)); // tiered crown
-  parts.push(new THREE.CylinderGeometry(0.025, 0.035, 0.7, 6).translate(0.0, 0.35, -0.2));
-  return parts;
-}
 
 /** a thammat: a gilded and red pulpit with a tiered spire */
 function pulpit(scale: number) {
@@ -59,8 +29,17 @@ function pulpit(scale: number) {
   g.push(boxAt(1.6, 0.12, 1.6, 0, 1.44, 0), boxAt(1.6, 0.12, 1.6, 0, 0.06, 0));
   for (const [x, z] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) g.push(boxAt(0.1, 1.3, 0.1, x, 2.15, z));
   g.push(boxAt(1.7, 0.18, 1.7, 0, 2.85, 0));
-  for (let i = 0; i < 4; i++) g.push(new THREE.CylinderGeometry(0.7 - i * 0.16, 0.8 - i * 0.16, 0.32, 4, 1).rotateY(Math.PI / 4).translate(0, 3.1 + i * 0.34, 0));
-  g.push(new THREE.ConeGeometry(0.12, 1.1, 8).translate(0, 4.9, 0));
+  // the busabok roof: six diminishing square tiers, each a flared eave over a short drum,
+  // then a slender ringed spire
+  let y = 2.94;
+  for (let i = 0; i < 6; i++) {
+    const r = 1.15 - i * 0.15;
+    g.push(new THREE.CylinderGeometry(r * 0.45, r, 0.2, 4, 1).rotateY(Math.PI / 4).translate(0, y + 0.1, 0));
+    g.push(new THREE.CylinderGeometry(r * 0.42, r * 0.42, 0.14, 4, 1).rotateY(Math.PI / 4).translate(0, y + 0.27, 0));
+    y += 0.34;
+  }
+  for (let i = 0; i < 5; i++) g.push(new THREE.SphereGeometry(0.13 - i * 0.015, 10, 6).scale(1, 0.55, 1).translate(0, y + 0.08 + i * 0.16, 0));
+  g.push(new THREE.ConeGeometry(0.05, 1.3, 8).translate(0, y + 1.4, 0));
   const out = new THREE.Group();
   out.add(merged(g, gold), merged(r, red));
   out.scale.setScalar(scale);
@@ -127,32 +106,40 @@ export function buildShrine(rng: () => number) {
   group.add(merged([boxAt(0.3, 0.35, 2 * cz + 0.6, BACK_X - 0.15, HALL.naveTop - 0.25, 0)], gold, false));
 
   // ---- the pedestal (chukchi) -----------------------------------------------------
-  const P = PEDESTAL;
+  // the image's own tier, with a lower step in front where the candles and guardians'
+  // offerings crowd; both gilded panels over red lacquer
+  const P = PEDESTAL, PS = PEDESTAL_STEP;
   const pedMat = tex('pedestal', { metalness: 0.85, roughness: 0.3 }, [2, 1]);
   const pedSide = tex('pedestal', { metalness: 0.85, roughness: 0.3 }, [1.5, 1]);
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(P.x1 - P.x0 + 0.8, 0.45, 2 * P.halfW + 0.9), [deepGold, red, deepGold, red, red, red]);
-  plinth.position.set((P.x0 + P.x1) / 2 + 0.4, FLOOR + 0.225, 0);
-  const body = new THREE.Mesh(new THREE.BoxGeometry(P.x1 - P.x0, P.top - FLOOR - 0.45, 2 * P.halfW), [deepGold, pedMat, gold, gold, pedSide, pedSide]);
-  body.position.set((P.x0 + P.x1) / 2, (P.top + FLOOR + 0.45) / 2, 0);
-  body.castShadow = body.receiveShadow = plinth.receiveShadow = true;
-  group.add(plinth, body);
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(P.x1 - PS.x0 + 0.4, 0.3, 2 * PS.halfW + 0.5), [deepGold, red, deepGold, red, red, red]);
+  plinth.position.set((PS.x0 + P.x1) / 2 - 0.2, FLOOR + 0.15, 0);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(P.x1 - P.x0, P.top - FLOOR - 0.3, 2 * P.halfW), [deepGold, pedMat, gold, gold, pedSide, pedSide]);
+  body.position.set((P.x0 + P.x1) / 2, (P.top + FLOOR + 0.3) / 2, 0);
+  const step = new THREE.Mesh(new THREE.BoxGeometry(PS.x1 - PS.x0, PS.top - FLOOR - 0.3, 2 * PS.halfW), [deepGold, pedMat, gold, gold, pedSide, pedSide]);
+  step.position.set((PS.x0 + PS.x1) / 2, (PS.top + FLOOR + 0.3) / 2, 0);
+  body.castShadow = body.receiveShadow = plinth.receiveShadow = step.receiveShadow = true;
+  group.add(plinth, body, step);
+  // a gilt moulding along each tier's lip
+  group.add(merged([
+    boxAt(0.14, 0.12, 2 * P.halfW + 0.1, P.x0 - 0.02, P.top - 0.06, 0),
+    boxAt(0.14, 0.12, 2 * PS.halfW + 0.1, PS.x0 - 0.02, PS.top - 0.06, 0),
+  ], gold, false));
 
   // ---- the image ----------------------------------------------------------------
-  // The Hugging Face image-to-3D route (photo → TRELLIS → Gaussian splat, as for Bodh
-  // Gaya) is wired below but waits on a splat file. Until then the image is a photo
-  // relief: a frontal Commons photograph of the Chinnarat (CC BY-SA 3.0), cut out and
-  // draped over hand-placed body volumes (head, torso, arms, crossed legs) with the
-  // aureole nearly flat behind (reference/theravada/scripts/relief.py, a working copy
-  // kept with the gitignored photos).
-  // Kneeling devotees see it from the front, as in the hall, so the real face, hands,
-  // sash and the flame-edged naga aureole all read. The baked sculpt with a photo
-  // aureole is the fallback if the relief fails to load.
+  // The Phra Buddha Chinnarat is a Gaussian splat made from one frontal Commons photograph
+  // (2013_Phra_Buddha_Chinnarat_01.jpg, CC BY-SA 3.0): cut out of its lacquer wall by hand,
+  // given depth by a monocular depth model (Depth Anything V2, run locally), then splatted
+  // surface-and-sides so it keeps its volume from the aisles (reference/theravada/scripts:
+  // mask2.py, depth.py, depth_splat.py; then scripts/statues/spz.ts). It carries its own
+  // flame-edged naga aureole. The photo relief (same photograph over hand-placed volumes)
+  // loads behind the veil and stands in until the splat has decoded; the baked sculpt with a
+  // drawn aureole is the last fallback.
   const slot = new THREE.Group();
-  slot.position.set(RELIEF_BACK_X, IMAGE.base - 0.05, 0);
+  slot.position.set(AUREOLE_X, IMAGE.base - 0.02, 0);
   slot.rotation.y = -Math.PI / 2; // the model faces +z; the image faces west (−x)
   group.add(slot);
   const aureole = new THREE.Mesh(panel(3.9, 4.95, 'x-'), cutout('aureole', { metalness: 0.95, roughness: 0.28 }));
-  aureole.position.set(IMAGE.x + 0.55, IMAGE.base + 2.3, 0);
+  aureole.position.set(AUREOLE_X + 0.1, IMAGE.base + 2.3, 0);
   aureole.visible = false;
   group.add(aureole);
   let current: THREE.Object3D | null = null;
@@ -163,7 +150,7 @@ export function buildShrine(rng: () => number) {
     const box = new THREE.Box3().setFromObject(s);
     const k = 3.6 / (box.max.y - box.min.y);
     s.scale.setScalar(k);
-    s.position.set(0, -box.min.y * k, RELIEF_BACK_X - IMAGE.x);
+    s.position.set(0, -box.min.y * k, 0.3);
     aureole.visible = true;
     slot.add((current = s));
   });
@@ -183,44 +170,44 @@ export function buildShrine(rng: () => number) {
     r.scale.setScalar(RELIEF_SCALE);
     slot.add((current = r));
   }).catch(() => sculptFallback().catch(() => {}));
-  // the Gaussian splat of the real image (photo → TRELLIS → splat_clean.py → spz.ts), with
-  // its own aureole, replaces the relief once it has decoded
-  if (SPLAT) {
-    const splat = new SplatMesh({ url: '/models/statues/theravada.spz' });
-    splat.initialized.then(() => {
-      splatReady = true;
-      if (current) slot.remove(current);
-      slot.add(splat);
-      aureole.visible = false;
-    }).catch(() => {});
+  const splat = new SplatMesh({ url: '/models/statues/theravada.spz' });
+  splat.initialized.then(() => {
+    splatReady = true;
+    if (current) slot.remove(current);
+    slot.add(splat);
+    aureole.visible = false;
+  }).catch(() => {});
+
+  // the two gilded guardians at the image's knees, made the same way from Commons close-ups
+  // (CC BY-SA 4.0, Mastertongapollo): Thao Wessuwan squatting with his club at the image's
+  // left knee (south), the yaksha Alavaka kneeling with his hands on his head, bearing the
+  // aureole's foot, at its right knee (north). Each is turned a little toward the nave.
+  for (const [name, z, turn] of [['wessuwan', 2.2, 0.35], ['alavaka', -2.2, -0.35]] as const) {
+    const g = new SplatMesh({ url: `/models/statues/theravada-${name}.spz` });
+    g.position.set(AUREOLE_X - 1.0, P.top, z);
+    g.rotation.y = -Math.PI / 2 + turn;
+    g.scale.setScalar(1.0);
+    group.add(g);
   }
 
-  // guardians at the knees on the front step: Thao Wessuwan (image's left, north),
-  // the yaksha Alavaka (image's right, south)
-  const gGeos: THREE.BufferGeometry[] = [];
-  for (const s of [-1, 1]) for (const g of guardian()) gGeos.push(g.translate(P.x0 - 0.15, FLOOR + 0.45, s * 1.95));
-  group.add(merged(gGeos, bronze));
-  // standing disciples in anjali either side of the pedestal
-  const dg = disciple();
-  for (const s of [-1, 1]) {
-    const d = new THREE.Mesh(dg, gold);
-    d.position.set(P.x1 - 0.4, FLOOR, s * 3.05);
-    d.rotation.y = -Math.PI / 2;
-    d.castShadow = true;
-    group.add(d);
-  }
-
-  // rows of smaller gilded images in the aisles, on stepped red-and-gold stands
-  const sb = seatedBuddhaGeometry().rotateY(-Math.PI / 2);
+  // rows of smaller gilded images in the aisles, on stepped red-and-gold stands: one splat of
+  // a Sukhothai-style seated image (the hall's Phra Buddha Chinnasi, Commons, CC BY-SA 4.0,
+  // made like the guardians), shared by every copy
   const rows: [number, number, number][] = [];
   for (const s of [-1, 1]) {
-    for (let i = 0; i < 4; i++) rows.push([35.2, FLOOR + 1.2, s * (4.0 + i * 0.85)]);
-    for (let i = 0; i < 3; i++) rows.push([34.2, FLOOR + 0.6, s * (4.4 + i * 0.95)]);
+    for (let i = 0; i < 3; i++) rows.push([35.3, FLOOR + 1.2, s * (4.1 + i * 1.05)]);
+    for (let i = 0; i < 2; i++) rows.push([34.3, FLOOR + 0.6, s * (4.6 + i * 1.1)]);
   }
-  const small = new THREE.InstancedMesh(sb, gold, rows.length);
-  const m = new THREE.Matrix4();
-  rows.forEach(([x, y, z], i) => small.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), new THREE.Vector3(0.85, 0.85, 0.85))));
-  group.add(small);
+  const small = new SplatMesh({ url: '/models/statues/theravada-small.spz' });
+  small.initialized.then(() => {
+    rows.forEach(([x, y, z], i) => {
+      const m = i === 0 ? small : new SplatMesh({ packedSplats: small.packedSplats });
+      m.position.set(x, y, z);
+      m.rotation.y = -Math.PI / 2;
+      m.scale.setScalar(0.82);
+      group.add(m);
+    });
+  }).catch(() => {});
   const standGeos: THREE.BufferGeometry[] = [];
   for (const s of [-1, 1]) {
     standGeos.push(boxAt(1.0, 1.2, hw - cz - 0.3, 35.3, FLOOR + 0.6, s * (cz + hw + 0.3) / 2));

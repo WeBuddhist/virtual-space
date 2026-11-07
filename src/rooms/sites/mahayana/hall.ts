@@ -37,21 +37,33 @@ const UX = 24, UZ = 21; // upper storey walls
 const MAIN_EAVE = 29.5;
 
 // photographed surfaces
-const plaster = photo(std(0xe8e2d4, 0.9), TEX + 'plaster-timber.jpg', { repeat: [1, 1], mirror: true, bump: 1.2 });
+// one bay per tile: a post at its edge and the deep tie beams (nuki) in horizontal bands, so the
+// plaster shows as long low strips, as on the real front (not a half-timbered grid)
+const plaster = photo(std(0xe8e2d4, 0.9), TEX + 'plaster-nuki.jpg', { repeat: [1, 1], bump: 0.6 });
 const pillarWood = photo(std(0xb4584a, 0.75), TEX + 'pillar-wood.jpg', { repeat: [1, 1], bump: 0.8, keepColor: true });
 const beamWood = photo(std(0x7a3a2a, 0.8), TEX + 'pillar-wood.jpg', { repeat: [1, 1], mirror: true, keepColor: true });
 const roofTiles = photo(std(0x7c8084, 0.75, 0.05), TEX + 'roof-tiles.jpg', { repeat: [1, 1], keepColor: true });
 const stone = photo(std(0x7a766e, 0.9), TEX + 'stone-floor.jpg', { repeat: [7, 6], mirror: true, keepColor: true });
 const podiumStone = photo(std(0x9a9284, 0.95), TEX + 'courtyard-paving.jpg', { repeat: [1, 1], mirror: true });
 const ceiling = photo(std(0x6a3226, 0.95), TEX + 'ceiling-lattice.jpg', { repeat: [1, 1], mirror: true });
-const lattice = photo(std(0x8a7a6a, 0.9, 0, { emissive: 0xfff0d0, emissiveIntensity: 0 }), TEX + 'lattice.jpg', { repeat: [1, 1], keepColor: true });
+/** lattice whose gaps (not its bars) glow: light behind, by day inside or by night outside */
+function glowLattice(color: number, glow: number) {
+  const m = photo(std(color, 0.9, 0, { emissive: glow, emissiveIntensity: 0 }), TEX + 'lattice.jpg', { repeat: [1, 1], keepColor: true });
+  const g = photo(std(0xffffff), TEX + 'lattice-glow.jpg', { repeat: [1, 1] });
+  Object.defineProperty(m, 'emissiveMap', { get() { return g.map; }, set() {}, configurable: true });
+  return m;
+}
+const lattice = glowLattice(0x8a7a6a, 0xffd9a0);
+/** the hall's high windows seen from inside: grey daylight between the bars */
+const latticeIn = glowLattice(0x6a5a4a, 0xc9d2da);
 const doorMat = photo(std(0x4a3524, 0.8), TEX + 'doors.jpg');
 const darkWood = std(0x2b1d14, 0.9);
 const extTimber = std(0x2e2018, 0.85);
-const eaveLining = std(0x2a1c12, 0.95, 0, { side: THREE.BackSide });
+// the eaves' undersides sit in deep shadow under the bracket sets
+const eaveLining = std(0x0d0907, 1, 0, { side: THREE.BackSide, envMapIntensity: 0 });
 const iron = std(0x1d1b19, 0.5, 0.6);
 const gold = new THREE.MeshStandardMaterial({ color: 0xd9b04c, metalness: 1, roughness: 0.3 });
-const copper = std(0x5f8a76, 0.6, 0.35);
+const karaTiles = std(0x4c4f52, 0.7, 0.1);
 const greenBronze = std(0x4f7a68, 0.55, 0.5);
 
 /** scale a geometry's uvs to metres / tile so photo textures keep their size */
@@ -112,7 +124,7 @@ function karahafu(b: Batch, group: THREE.Group, faceWindow: THREE.Mesh) {
   const roof = new THREE.ExtrudeGeometry(band, { depth: z1 - z0, bevelEnabled: false, steps: 1 });
   const rp = roof.attributes.position, ru = roof.attributes.uv;
   for (let i = 0; i < rp.count; i++) ru.setXY(i, rp.getX(i) / 1.2, rp.getZ(i) / 1.2);
-  b.add(roof, copper, 0, 0, z0);
+  b.add(roof, karaTiles, 0, 0, z0);
   // gilt edge along the front of the wave and its bargeboard
   const edge = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p.x * 1.06, p.y + 0.12, z1 + 0.02))), 60, 0.14, 6);
   b.add(edge, gold);
@@ -234,7 +246,8 @@ export function buildHall() {
   }
 
   // ---- upper storey walls between the two roofs, with a lattice band ----
-  const uh = MAIN_EAVE - AISLE_Y + 0.5, uy = AISLE_Y + uh / 2 - 0.5;
+  // it starts just above the aisle ceiling, so no strip of its plaster shows inside the hall
+  const uh = MAIN_EAVE - AISLE_Y, uy = AISLE_Y + 0.03 + uh / 2;
   b.add(wallGeo(UX * 2, uh, 0.6, bayW, uh / 2), plaster, 0, uy, UZ);
   b.add(wallGeo(UX * 2, uh, 0.6, bayW, uh / 2), plaster, 0, uy, -UZ);
   for (const sx of [-1, 1]) b.add(wallGeo(0.6, uh, UZ * 2, bayW, uh / 2), plaster, sx * UX, uy, 0);
@@ -256,8 +269,10 @@ export function buildHall() {
   }
 
   // ---- roofs ----
-  const mokoshi = hipRoofGeometry(32.6, 29.4, UX, UZ, AISLE_Y + 0.6, 20.2, 0, 1.4, 1.25, 1.9);
-  const main = hipRoofGeometry(30.8, 27.2, 12, 0, MAIN_EAVE, 49.5, 0, 2.2, 1.3, 1.9);
+  // the photo holds twelve rows of round tiles: at 4.4 m a tile the rows are ~0.37 m apart, the
+  // size of the hall's great hongawara, so they still read as lines from the gate
+  const mokoshi = hipRoofGeometry(32.6, 29.4, UX, UZ, AISLE_Y + 0.6, 20.2, 0, 1.4, 1.25, 4.4);
+  const main = hipRoofGeometry(30.8, 27.2, 12, 0, MAIN_EAVE, 49.5, 0, 2.2, 1.3, 4.4);
   for (const g of [mokoshi, main]) {
     const r = new THREE.Mesh(g, roofTiles);
     r.castShadow = r.receiveShadow = true;
@@ -283,20 +298,26 @@ export function buildHall() {
   }
   cameraSolids.push({ x0: -PODIUM.x - 1, x1: PODIUM.x + 1, z0: PODIUM.z0 - 1, z1: PODIUM.z1 + 1, y0: AISLE_Y });
 
-  // ---- bracket sets under both eaves ----
+  // ---- bracket sets under both eaves: Daibutsuyō arms stacked six deep, and on every post a
+  // second cluster thrust straight through it at mid height ----
   const bmats: THREE.Matrix4[] = [];
-  for (let x = -W + 1.2; x <= W - 1.2; x += 2.7) {
-    bmats.push(at(x, AISLE_Y - 2.3, FRONT + 0.1, 0, 0.85), at(x, AISLE_Y - 2.3, BACK - 0.1, Math.PI, 0.85));
+  for (let x = -W + 1.2; x <= W - 1.2; x += 2.3) {
+    bmats.push(at(x, AISLE_Y - 3.1, FRONT + 0.1, 0, 1.2), at(x, AISLE_Y - 3.1, BACK - 0.1, Math.PI, 1.2));
   }
-  for (let z = BACK + 1.2; z <= FRONT - 1.2; z += 2.7) {
-    bmats.push(at(W + 0.1, AISLE_Y - 2.3, z, Math.PI / 2, 0.85), at(-W - 0.1, AISLE_Y - 2.3, z, -Math.PI / 2, 0.85));
+  for (let z = BACK + 1.2; z <= FRONT - 1.2; z += 2.3) {
+    bmats.push(at(W + 0.1, AISLE_Y - 3.1, z, Math.PI / 2, 1.2), at(-W - 0.1, AISLE_Y - 3.1, z, -Math.PI / 2, 1.2));
   }
-  for (let x = -UX + 1.2; x <= UX - 1.2; x += 2.6) {
-    bmats.push(at(x, MAIN_EAVE - 2.5, UZ + 0.4, 0, 1.05), at(x, MAIN_EAVE - 2.5, -UZ - 0.4, Math.PI, 1.05));
+  for (let x = -UX + 1.2; x <= UX - 1.2; x += 2.2) {
+    bmats.push(at(x, MAIN_EAVE - 3.4, UZ + 0.4, 0, 1.45), at(x, MAIN_EAVE - 3.4, -UZ - 0.4, Math.PI, 1.45));
   }
-  for (let z = -UZ + 1.2; z <= UZ - 1.2; z += 2.6) {
-    bmats.push(at(UX + 0.4, MAIN_EAVE - 2.5, z, Math.PI / 2, 1.05), at(-UX - 0.4, MAIN_EAVE - 2.5, z, -Math.PI / 2, 1.05));
+  for (let z = -UZ + 1.2; z <= UZ - 1.2; z += 2.2) {
+    bmats.push(at(UX + 0.4, MAIN_EAVE - 3.4, z, Math.PI / 2, 1.45), at(-UX - 0.4, MAIN_EAVE - 3.4, z, -Math.PI / 2, 1.45));
   }
+  for (let i = 0; i <= 7; i++) {
+    const x = -W + i * bayW;
+    bmats.push(at(x, DOOR.top + 0.9, FRONT + 0.2, 0, 0.8), at(x, DOOR.top + 0.9, BACK - 0.2, Math.PI, 0.8));
+  }
+  for (let i = 0; i <= 8; i++) bmats.push(at(-UX + (i * 2 * UX) / 8, 22.2, UZ + 0.4, 0, 0.9), at(-UX + (i * 2 * UX) / 8, 22.2, -UZ - 0.4, Math.PI, 0.9));
   group.add(instances(bracketGeo(1), extTimber, bmats, false));
 
   // ---- the karahafu and face window ----
@@ -360,7 +381,7 @@ export function buildHall() {
   b.add(plane(INNER_X * 2, naveH, 4, 4), darkWood, 0, naveY, ROWS[3] - 0.4);
   for (const sx of [-1, 1]) b.add(plane(naveLen, naveH, 4, 4), darkWood, sx * (INNER_X + 0.4), naveY, naveMid, -sx * Math.PI / 2);
   for (const [x, z, ry, len] of [[0, ROWS[0] + 0.3, Math.PI, INNER_X * 2], [0, ROWS[3] - 0.3, 0, INNER_X * 2], [INNER_X + 0.3, naveMid, -Math.PI / 2, naveLen], [-INNER_X - 0.3, naveMid, Math.PI / 2, naveLen]] as const) {
-    b.add(plane(len, 4.2, 3, 2.4), lattice, x, 27.6, z, ry);
+    b.add(plane(len, 4.2, 3, 2.4), latticeIn, x, 27.6, z, ry);
   }
   // inside face of the walls: dark boarding above a plaster dado
   b.add(plane((W - t) * 2, wallH, 4, 4), darkWood, 0, wy, BACK + t + 0.02);
@@ -369,7 +390,7 @@ export function buildHall() {
   // high lattice windows in the side walls letting in grey light
   for (let i = 0; i < 5; i++) {
     const z = BACK + 6 + i * 9.5;
-    for (const sx of [-1, 1]) b.add(plane(5, 2.6, 2.5, 2.6), lattice, sx * (W - t - 0.05), AISLE_Y - 3.2, z, -sx * Math.PI / 2);
+    for (const sx of [-1, 1]) b.add(plane(5, 2.6, 2.5, 2.6), latticeIn, sx * (W - t - 0.05), AISLE_Y - 3.2, z, -sx * Math.PI / 2);
   }
 
   // ---- the green bronze banners (ban) hanging on the great pillars before the Buddha ----
@@ -422,7 +443,8 @@ export function buildHall() {
     floor: [floor, podium, ...treads],
     update(night: number) {
       shaft.intensity = (1 - night) * 380;
-      lattice.emissiveIntensity = (1 - night) * 0.05 + night * 0.9;
+      lattice.emissiveIntensity = night * 1.1;
+      latticeIn.emissiveIntensity = (1 - night) * 0.55 + night * 0.03;
       for (const f of floods) f.intensity = night * 320;
       doorGlow.intensity = night * 90;
     },

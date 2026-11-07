@@ -11,7 +11,9 @@ import { ALTAR, BUDDHA, buildShrine, FACE, OFFER_BOX_Z } from './shrine';
 export function mahayanaSite({ scene, rng }: SiteContext): Site {
   const params = new URLSearchParams(location.search);
   const hall = buildHall();
-  const shrine = buildShrine(rng, params.get('statue') ?? 'splat');
+  // ?statue=mesh and ?view=x,z,yaw are for screenshots in development only
+  const dev = import.meta.env.DEV;
+  const shrine = buildShrine(rng, (dev && params.get('statue')) || 'splat');
   const grounds = buildGrounds(rng);
   scene.add(hall.group, shrine.group, grounds.group);
 
@@ -54,8 +56,8 @@ export function mahayanaSite({ scene, rng }: SiteContext): Site {
   const loop = [[0, 15.4], [-10, 15.4], [-17, 10], [-17, -3], [-17, -22], [0, -22.5], [17, -22], [17, -3], [17, 10], [10, 15.4]]
     .map(([x, z]) => new THREE.Vector3(x, 0, z));
 
-  // ?view=x,z,yaw places the visitor (for screenshots of the hall and statue)
-  const view = params.get('view')?.split(',').map(Number);
+  // ?view=x,z,yaw places the visitor (dev only, for screenshots of the hall and statue)
+  const view = dev ? params.get('view')?.split(',').map(Number) : undefined;
   const spawn = view ? new THREE.Vector3(view[0], 0, view[1]) : new THREE.Vector3(2.5, 0, 62);
   const spawnYaw = view && view.length > 2 ? view[2] : Math.PI;
 

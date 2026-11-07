@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import type { Cushion } from '../../types';
-import { BENCH, BUDDHA_FACE, FY, SEAT_ZS } from './layout';
+import type { Box2, Cushion } from '../../types';
+import { BENCH, BENCH_XS, BUDDHA_FACE, FY, SEAT_ZS } from './layout';
 import type { Mats } from './mats';
 import { Batch, tiledPlane } from './util';
 
@@ -13,18 +13,25 @@ export function buildSeating(scene: THREE.Scene, m: Mats) {
   const group = new THREE.Group();
   const b = new Batch();
   const cushions: Cushion[] = [];
+  const colliders: Box2[] = [];
   const len = BENCH.z1 - BENCH.z0, cz = (BENCH.z0 + BENCH.z1) / 2;
   const shawl = new THREE.MeshStandardMaterial({ color: 0x7a1f2b, roughness: 0.95 });
   const saffron = new THREE.MeshStandardMaterial({ color: 0xf2a33a, roughness: 0.85 });
   const pecha = new THREE.MeshStandardMaterial({ color: 0xe0b52a, roughness: 0.8 });
   const cup = new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.3 });
   const tableTop = new THREE.BoxGeometry(0.42, 0.06, 0.9);
-  const tableBody = new THREE.BoxGeometry(0.36, 0.28, 0.82);
-  const wheel = new THREE.CircleGeometry(0.1, 12);
+  const tableBody = new THREE.BoxGeometry(0.36, 0.22, 0.82);
+  const plinth = new THREE.BoxGeometry(0.32, 0.06, 0.76);
+  const topEdge = new THREE.BoxGeometry(0.44, 0.012, 0.92);
+  const panel = new THREE.PlaneGeometry(0.3, 0.17);
+  const panelIn = new THREE.PlaneGeometry(0.27, 0.14);
+  const wheel = new THREE.RingGeometry(0.035, 0.06, 16);
+  const spoke = new THREE.PlaneGeometry(0.008, 0.11);
 
   // inner rows (the seats) and outer rows (decoration); s is the side, -x or +x
   for (const s of [-1, 1]) {
-    for (const [bx, tx] of [[BENCH.x, BENCH.x - 0.72], [BENCH.x + 1.95, BENCH.x + 1.95 - 0.72]] as const) {
+    for (const bx of BENCH_XS) {
+      const tx = bx - 0.72;
       const x = s * bx;
       b.add(new THREE.BoxGeometry(BENCH.w, BENCH.h, len), m.darkWood, x, FY + BENCH.h / 2, cz, 0, 0, 0, true);
       b.add(tiledPlane(BENCH.w, len, 1, len / 0.8), m.rug, x, FY + BENCH.h + 0.004, cz, 0, -Math.PI / 2);
@@ -32,9 +39,16 @@ export function buildSeating(scene: THREE.Scene, m: Mats) {
       b.add(new THREE.BoxGeometry(0.08, 0.32, len), m.darkWood, x + s * (BENCH.w / 2 - 0.04), FY + BENCH.h + 0.16, cz);
       for (const z of SEAT_ZS) {
         const t = s * tx;
-        b.add(tableBody, m.darkRed, t, FY + 0.14, z);
+        // a choktse: a recessed dark plinth, a red body with a gold-ruled panel and a Dharma
+        // wheel on the end toward the aisle, a top that overhangs with a gold edge
+        b.add(plinth, m.darkWood, t, FY + 0.03, z);
+        b.add(tableBody, m.darkRed, t, FY + 0.17, z);
         b.add(tableTop, m.wood, t, FY + 0.31, z);
-        b.add(wheel, m.gold, t - s * 0.181, FY + 0.15, z, -s * Math.PI / 2);
+        b.add(topEdge, m.gold, t, FY + 0.283, z);
+        b.add(panel, m.gold, t - s * 0.182, FY + 0.17, z, -s * Math.PI / 2);
+        b.add(panelIn, m.darkRed, t - s * 0.183, FY + 0.17, z, -s * Math.PI / 2);
+        b.add(wheel, m.gold, t - s * 0.184, FY + 0.17, z, -s * Math.PI / 2);
+        for (let k = 0; k < 8; k++) b.add(spoke, m.darkRed, t - s * 0.185, FY + 0.17, z, -s * Math.PI / 2, 0, (k / 8) * Math.PI);
         // a text wrapped in yellow cloth, a tea cup, a folded shawl on the seat
         b.add(new THREE.BoxGeometry(0.16, 0.06, 0.42), pecha, t, FY + 0.37, z - 0.1);
         b.add(new THREE.CylinderGeometry(0.035, 0.028, 0.07, 10), cup, t, FY + 0.375, z + 0.3);
@@ -43,6 +57,13 @@ export function buildSeating(scene: THREE.Scene, m: Mats) {
         }
       }
     }
+  }
+
+  // the outer rows are packed too close to walk between: one block per side (the inner
+  // row stays open so a visitor can reach the cushions from the aisle)
+  for (const s of [-1, 1]) {
+    const a = s * (BENCH_XS[1] - 0.72 - 0.25), c = s * (BENCH_XS[BENCH_XS.length - 1] + BENCH.w / 2);
+    colliders.push({ x0: Math.min(a, c), x1: Math.max(a, c), z0: BENCH.z0, z1: BENCH.z1 });
   }
 
   // the cushions on the inner benches, facing the aisle; sitters look up at the Buddha
@@ -83,8 +104,9 @@ export function buildSeating(scene: THREE.Scene, m: Mats) {
     for (const z of [11.4, 12.4, 13.3]) b.add(new THREE.TorusGeometry(0.075, 0.02, 6, 12), m.gold, x, y, z);
     b.add(new THREE.BoxGeometry(0.08, 0.3, 0.08), m.darkWood, x, FY + 0.15, 13.2);
     b.add(new THREE.BoxGeometry(0.08, 0.3, 0.08), m.darkWood, x, FY + 0.15, 11.2);
+    colliders.push({ x0: x - 0.3, x1: x + 0.3, z0: 10.4, z1: 13.55 });
   }
   b.build(group);
   scene.add(group);
-  return { group, cushions };
+  return { group, cushions, colliders };
 }

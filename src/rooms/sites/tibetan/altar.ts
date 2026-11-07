@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { loadStatue } from '../../../kit/statue';
 import type { Box2 } from '../../types';
 import {
-  ALTAR, AMITAYUS, BUDDHA, BUDDHA_H, FY, GURU, HALL, RAIL_Z, TABLE, THRONE, THRONE_H, TOP,
+  ALTAR, AMITAYUS, BUDDHA, BUDDHA_H, DRAGON_X, FY, GURU, HALL, NAVE_X, RAIL_Z, TABLE, THRONE, THRONE_H, TOP,
 } from './layout';
 import type { Mats } from './mats';
-import { Batch, canvasTex, tiledPlane } from './util';
+import { Batch, tiledPlane } from './util';
 
 // The altar wall of the Golden Temple: three colossal gilded images on a long platform
 // (dark-blue band with gold medallions over lit glass cases of small gold Buddhas),
@@ -16,18 +16,67 @@ import { Batch, canvasTex, tiledPlane } from './util';
 // on the axis below.
 
 /**
- * The Shakyamuni: a textured mesh made by TRELLIS (trellis-community/TRELLIS on Hugging Face)
- * from a single photograph of the statue, masked to the figure and its lotus: "Statue in 2011
- * detail, Namrodoling Monastery (Golden Temple) Bylakuppe 6746 (cropped).JPG" by Rameshng,
- * Wikimedia Commons, CC BY-SA 3.0. Welded, WebP-textured and meshopt-compressed with
- * gltf-transform (about 17k triangles, 220 KB).
+ * The three images are built from real photographs (Wikimedia Commons), not sculpted:
+ *
+ * Shakyamuni: a TRELLIS mesh (trellis-community/TRELLIS on Hugging Face) made from "Statue in
+ * 2011 detail, Namrodoling Monastery (Golden Temple) Bylakuppe 6746 (cropped).JPG" (Rameshng,
+ * CC BY-SA 3.0), re-textured by projecting that photograph at full resolution onto the front of
+ * the mesh, so the face, the earth-touching hand and the bowl are the real ones; the sides and
+ * back keep the model's own shading recoloured to the photo's gilt and lapis.
+ *
+ * Guru Rinpoche and Amitayus: photo reliefs. Each figure is cut from "Close up of Three Statues -
+ * Namdroling Monastry, Bylekuppe.jpg" (Bikashrd, CC BY-SA 4.0) with the high-resolution close-ups
+ * "Padmasambhava image, Namdroling.jpg" (Christopher J. Fynn, CC BY-SA 4.0) and "Buddha Amiyatus,
+ * Namdroling Monastry, Bylekuppe.jpg" (Bikashrd, CC BY-SA 4.0) painted into the head and body;
+ * its depth comes from a monocular depth model (Depth Anything V2, run locally), rounded off at
+ * the outline. They are exact from the hall and hold up to about 40 degrees off axis.
  */
 const SHAKYAMUNI = 'tibetan-shakyamuni';
-/** the mesh's lotus base is 13% of its height; the seated figure above it is BUDDHA_H */
-const BUDDHA_SCALE = BUDDHA_H / 0.87;
-/** the flanking figures are baked sculpts about 1.15 m tall (seat included) */
-const FLANK_SCALE = 3.15;
-const FLANK_PLINTH = 1.0;
+
+/** a relief's outline curls back steeply, where its photo is stretched: shade surfaces seen at a
+ * grazing angle toward the niche's dark, as the real figures' sides fall into shadow */
+function grazingShade(o: THREE.Object3D) {
+  o.traverse((c) => {
+    const mesh = c as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    mat.onBeforeCompile = (sh) => {
+      sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        { float ndv = abs(dot(normalize(normal), normalize(vViewPosition)));
+          float k = mix(0.28, 1.0, smoothstep(0.12, 0.5, ndv));
+          diffuseColor.rgb *= k; totalEmissiveRadiance *= k * k; }`);
+    };
+    mat.customProgramCacheKey = () => 'tibetan-relief';
+  });
+  return o;
+}
+/** the mesh is 1 unit tall, its lotus the bottom 15%; the seated figure above it is BUDDHA_H */
+const BUDDHA_SCALE = BUDDHA_H / 0.85;
+/** the flanking reliefs are in metres, seat at y = 0, face axis at x = 0, back at z = 0 */
+const FLANK_SEAT = 1.1;
+/** height of the flanking figures' eyes above their seats (from the close-up photo) */
+const FLANK_EYES = { guru: 3.44, amitayus: 3.57 };
+
+/** photo-textured statue: the photo's own light is in the texture, so it carries some of its
+ * colour as emission and takes the hall's floods as a soft polished-gilt sheen */
+function photoGilt(o: THREE.Object3D, doubleSide = false) {
+  o.traverse((c) => {
+    const mesh = c as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    // a warm tint keeps the gilt saturated under the white-ish floods
+    mat.color.setHex(0xffe6b8);
+    mat.metalness = 0.12;
+    mat.roughness = 0.5;
+    mat.envMapIntensity = 0.6;
+    mat.emissive.setHex(0xffe0b0);
+    mat.emissiveMap = mat.map;
+    mat.emissiveIntensity = 0.22;
+    if (doubleSide) mat.side = THREE.DoubleSide;
+    mat.needsUpdate = true;
+  });
+  return o;
+}
 
 function lathe(points: [number, number][], segs = 24) {
   return new THREE.LatheGeometry(points.map(([r, y]) => new THREE.Vector2(r, y)), segs);
@@ -43,31 +92,6 @@ function archShape(w: number, h: number) {
   s.lineTo(r, 0);
   s.lineTo(-r, 0);
   return s;
-}
-
-/** a soft gold "reflection" painted on the floor: the polished stone mirroring the images */
-function reflectionTexture() {
-  return canvasTex(512, 256, (g) => {
-    g.fillStyle = '#000';
-    g.fillRect(0, 0, 512, 256);
-    const blob = (x: number, w: number, a: number) => {
-      const grd = g.createLinearGradient(0, 0, 0, 256);
-      grd.addColorStop(0, `rgba(255,200,90,${a})`);
-      grd.addColorStop(0.55, `rgba(220,150,50,${a * 0.35})`);
-      grd.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = grd;
-      g.filter = 'blur(10px)';
-      g.beginPath();
-      g.ellipse(x, 0, w, 240, 0, 0, Math.PI * 2);
-      g.fill();
-    };
-    blob(256, 60, 0.75);
-    blob(78, 52, 0.55);
-    blob(434, 52, 0.55);
-    g.filter = 'blur(6px)';
-    g.fillStyle = 'rgba(70,110,200,0.25)';
-    g.fillRect(0, 0, 512, 18);
-  });
 }
 
 export function buildAltar(m: Mats) {
@@ -92,46 +116,47 @@ export function buildAltar(m: Mats) {
   colliders.push({ x0: A.x0 - 0.1, x1: A.x1 + 0.1, z0: RAIL_Z - 0.12, z1: A.z1 });
   // khatas draped over the rail
   const khata = new THREE.MeshStandardMaterial({ color: 0xf7f4ea, roughness: 0.6, side: THREE.DoubleSide });
-  for (const x of [-6.3, -4.1, -0.8, 0.9, 3.6, 6.8]) b.add(new THREE.PlaneGeometry(0.16, 0.5), khata, x, FY + 0.42, RAIL_Z - 0.05, Math.PI);
+  for (const x of [-9.1, -6.3, -4.1, -0.8, 0.9, 3.6, 6.8, 9.4]) b.add(new THREE.PlaneGeometry(0.16, 0.5), khata, x, FY + 0.42, RAIL_Z - 0.05, Math.PI);
 
   // ---- Shakyamuni's throne and torana ----
-  const tw = 4.6, td = 3.2;
+  const tw = 5.2, td = 3.2;
   b.add(new THREE.BoxGeometry(tw, THRONE_H, td), m.gold, BUDDHA.x, TOP + THRONE_H / 2, BUDDHA.z, 0, 0, 0, true);
   b.add(tiledPlane(tw, THRONE_H * 0.6, 3, 1), m.altarBand, BUDDHA.x, TOP + THRONE_H * 0.45, BUDDHA.z - td / 2 - 0.01, Math.PI);
   b.add(new THREE.BoxGeometry(tw + 0.2, 0.12, td + 0.2), m.gold, BUDDHA.x, TOP + THRONE_H, BUDDHA.z);
-  // a gilded lotus cushion that takes the image's base (and hides the scan's ragged underside)
-  const pad = lathe([[0, 0], [1, 0], [1.04, 0.1], [1.0, 0.2], [0.92, 0.26], [0, 0.26]], 40);
-  pad.scale(2.25, 1, 1.5);
-  b.add(pad, m.gold, BUDDHA.x, TOP + THRONE_H, BUDDHA.z - 0.1, 0, 0, 0, true);
-  const petal = new THREE.SphereGeometry(0.22, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
-  petal.scale(1, 1.6, 0.5);
-  for (let i = 0; i < 26; i++) {
-    const a = (i / 26) * Math.PI * 2;
-    b.add(petal, m.gold, BUDDHA.x + Math.sin(a) * 2.3, TOP + THRONE_H + 0.02, BUDDHA.z - 0.1 + Math.cos(a) * 1.55, a, -0.35);
-  }
-  // the torana's turquoise disc (60% up the texture) sits behind the Buddha's head
-  const torH = (THRONE_H + (0.81 * BUDDHA_H) / 0.87) / 0.6, torW = torH * (703 / 908);
-  const torZ = A.z1 - 0.25;
-  b.add(new THREE.PlaneGeometry(torW, torH), m.torana, BUDDHA.x, TOP + torH / 2, torZ, Math.PI);
-  // a dark backing so the torana reads as a solid relief against the sky mural
-  b.add(new THREE.ShapeGeometry(archShape(torW * 0.42, torH * 0.62), 12), m.deepBlue, BUDDHA.x, TOP + 0.1, torZ + 0.03, Math.PI);
+  // the torana: a relief cut from the same photograph as the image (statue painted out to its
+  // turquoise head disc and navy niche; depth from Depth Anything V2), loaded with the images.
+  // It stands on a gilded plinth as wide as itself, its base level with the Buddha's seat.
+  const seatY = TOP + THRONE_H + 0.06 + 0.15 * BUDDHA_SCALE;
+  b.add(new THREE.BoxGeometry(7.5, seatY - TOP, 0.9), m.gold, BUDDHA.x, (seatY + TOP) / 2, A.z1 - 0.75, 0, 0, 0, true);
 
-  // ---- the flanking thrones, niches and halos ----
-  const lotus = lathe([[0, 0], [1.9, 0], [1.95, 0.15], [1.8, 0.3], [1.95, 0.45], [2.05, 0.65], [1.9, 0.85], [1.75, FLANK_PLINTH], [0, FLANK_PLINTH]], 40);
-  for (const f of [GURU, AMITAYUS]) {
+  // ---- the flanking lotus thrones, niches and halos ----
+  // a wide gilded lotus of two rows of petals, oval so it sits within the platform
+  const lotus = lathe([[0, 0], [2.3, 0], [2.36, 0.12], [2.2, 0.26], [2.36, 0.42], [2.5, 0.66], [2.42, 0.86], [2.3, FLANK_SEAT - 0.1], [2.34, FLANK_SEAT], [0, FLANK_SEAT]], 48);
+  lotus.scale(1, 1, 0.72);
+  const lotusPetal = new THREE.SphereGeometry(0.3, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+  lotusPetal.scale(1, 1.5, 0.45);
+  for (const [f, eyes] of [[GURU, FLANK_EYES.guru], [AMITAYUS, FLANK_EYES.amitayus]] as const) {
     b.add(lotus, m.gold, f.x, TOP, f.z, 0, 0, 0, true);
-    const headY = TOP + FLANK_PLINTH + 0.93 * FLANK_SCALE;
+    for (const [row, y, r] of [[0, 0.2, 2.3], [1, 0.62, 2.45]] as const) {
+      for (let i = 0; i < 30; i++) {
+        const a = ((i + row * 0.5) / 30) * Math.PI * 2;
+        const cz = Math.cos(a);
+        if (cz > 0.55) continue; // hidden behind, against the wall
+        b.add(lotusPetal, m.gold, f.x + Math.sin(a) * r, TOP + y, f.z + cz * r * 0.72, a, -0.25);
+      }
+    }
+    const eyeY = TOP + FLANK_SEAT + eyes;
     // the arched body niche, gold rim round deep blue
-    b.add(new THREE.ShapeGeometry(archShape(4.3, headY - TOP + 1.4), 16), m.gold, f.x, TOP + 0.2, A.z1 - 0.2, Math.PI);
-    b.add(new THREE.ShapeGeometry(archShape(3.7, headY - TOP + 1.1), 16), m.deepBlue, f.x, TOP + 0.2, A.z1 - 0.23, Math.PI);
+    b.add(new THREE.ShapeGeometry(archShape(4.6, eyeY - TOP + 0.6), 16), m.gold, f.x, TOP + 0.2, A.z1 - 0.2, Math.PI);
+    b.add(new THREE.ShapeGeometry(archShape(4.0, eyeY - TOP + 0.3), 16), m.deepBlue, f.x, TOP + 0.2, A.z1 - 0.23, Math.PI);
     // the round jewelled halo behind the head
-    b.add(new THREE.PlaneGeometry(3.5, 3.5), m.halo, f.x, headY + 0.25, A.z1 - 0.3, Math.PI);
+    b.add(new THREE.PlaneGeometry(3.7, 3.7), m.halo, f.x, eyeY + 0.85, A.z1 - 0.3, Math.PI);
   }
 
   // ---- pillars: red with coiling gold dragons between the images, brocade at the ends ----
   const pillarH = FY + HALL.h - TOP;
   for (const s of [-1, 1]) {
-    const x = s * 3.5, z = A.z1 - 0.9;
+    const x = s * DRAGON_X, z = A.z1 - 0.9;
     const shaft = new THREE.CylinderGeometry(0.3, 0.3, pillarH, 16, 1, true);
     const uv = shaft.attributes.uv as THREE.BufferAttribute;
     for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * (pillarH / 1.9));
@@ -153,7 +178,7 @@ export function buildAltar(m: Mats) {
     b.add(new THREE.BoxGeometry(1.1, 0.4, 1.1), m.lintel, x, FY + HALL.h - 0.2, z);
   }
   for (const s of [-1, 1]) {
-    const x = s * 8.35, z = A.z0 - 0.45;
+    const x = s * NAVE_X, z = A.z0 - 0.45;
     const h = HALL.h;
     const shaft = new THREE.CylinderGeometry(0.4, 0.4, h, 18, 1, true);
     const uv = shaft.attributes.uv as THREE.BufferAttribute;
@@ -165,7 +190,7 @@ export function buildAltar(m: Mats) {
   // ---- crystal chandeliers in front of the faces ----
   const crystal = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2d8, emissiveIntensity: 0.35, metalness: 0.4, roughness: 0.05 });
   const drop = new THREE.OctahedronGeometry(0.07, 0);
-  const chandeliers: [number, number, number][] = [[0, FY + 10.3, A.z0 - 1.3], [GURU.x, FY + 9.9, A.z0 - 1.1], [AMITAYUS.x, FY + 9.9, A.z0 - 1.1], [-2.6, FY + 10.6, A.z0 - 0.8], [2.6, FY + 10.6, A.z0 - 0.8]];
+  const chandeliers: [number, number, number][] = [[0, FY + 10.3, A.z0 - 1.3], [GURU.x, FY + 9.9, A.z0 - 1.1], [AMITAYUS.x, FY + 9.9, A.z0 - 1.1], [-3.3, FY + 10.6, A.z0 - 0.8], [3.3, FY + 10.6, A.z0 - 0.8]];
   const per = 5 * 18;
   const drops = new THREE.InstancedMesh(drop, crystal, chandeliers.length * per);
   const mtx = new THREE.Matrix4();
@@ -231,7 +256,7 @@ export function buildAltar(m: Mats) {
   const blossom = new THREE.IcosahedronGeometry(0.06, 0);
   const vaseSpots: [number, number, number][] = [[-1.32, FY + T.h, tcz], [1.32, FY + T.h, tcz]];
   // flower vases along the altar's top edge in front of each image
-  for (const x of [-7.6, -4.1, -1.9, 1.9, 4.1, 7.6]) vaseSpots.push([x, TOP, A.z0 + 0.35]);
+  for (const x of [-10.2, -5.3, -2.3, 2.3, 5.3, 10.2]) vaseSpots.push([x, TOP, A.z0 + 0.35]);
   let seed = 3;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   for (const [x, y, z] of vaseSpots) {
@@ -245,75 +270,76 @@ export function buildAltar(m: Mats) {
   // a garland of flowers along the front of each throne
   for (let x = -2.1; x <= 2.1; x += 0.14) b.add(blossom, (Math.round(x * 7) % 2) ? marigold : pink, x, TOP + 0.08, BUDDHA.z - 1.18);
 
-  // ---- the polished floor mirroring the gold ----
-  const refl = new THREE.Mesh(new THREE.PlaneGeometry(17, 9), new THREE.MeshBasicMaterial({
-    map: reflectionTexture(), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false,
-  }));
-  refl.rotation.x = -Math.PI / 2;
-  refl.position.set(0, FY + 0.012, A.z0 - 4.6);
-  refl.renderOrder = 1;
-  group.add(refl);
-
   b.build(group);
 
   // ---- the images ----
   const statues = new THREE.Group();
   group.add(statues);
-  // Shakyamuni: earth-touching right hand, dark alms bowl, blue curls (TRELLIS mesh)
+  // Shakyamuni: earth-touching right hand, dark alms bowl, lapis curls
   const buddhaSlot = new THREE.Group();
-  buddhaSlot.position.set(BUDDHA.x, TOP + THRONE_H, BUDDHA.z - 0.1);
+  buddhaSlot.position.set(BUDDHA.x, TOP + THRONE_H + 0.06, BUDDHA.z + 0.15);
+  // the mesh faces +z and the hall's door is at -z. Its photograph was taken from below, so the
+  // model came out leaning back; lean it forward again so the face meets pilgrims' eyes
+  buddhaSlot.rotation.set(0.13, Math.PI, 0, 'YXZ');
   statues.add(buddhaSlot);
-  loadStatue(SHAKYAMUNI, 'gilt').then((s) => {
-    s.traverse((o) => {
+  const toranaSlot = new THREE.Group();
+  toranaSlot.position.set(BUDDHA.x, seatY, A.z1 - 0.55);
+  toranaSlot.rotation.y = Math.PI;
+  statues.add(toranaSlot);
+  loadStatue('tibetan-torana', 'gilt').then((t) => {
+    t.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
-      mesh.geometry.computeVertexNormals();
+      mesh.castShadow = false;
       const mat = mesh.material as THREE.MeshStandardMaterial;
-      // the photo's own light is baked into the texture; a little metal gives it the
-      // polished-gilt sheen under the floodlights
-      mat.flatShading = false;
-      mat.color.setHex(0xffe2a0);
-      mat.metalness = 0.15;
-      mat.roughness = 0.4;
-      mat.envMapIntensity = 1.1;
-      // the scan keeps the curls' lapis only faintly: push bluish texels back to the
-      // painted cobalt of the real hair (gold texels have red over blue and are untouched)
+      mat.roughness = 0.55;
+      mat.metalness = 0.1;
+      mat.emissive.setHex(0xffffff);
+      mat.emissiveMap = mat.map;
+      mat.emissiveIntensity = 0.18;
+    });
+    toranaSlot.add(t);
+  }).catch(() => {});
+  loadStatue(SHAKYAMUNI, 'gilt').then((s) => {
+    s.scale.setScalar(BUDDHA_SCALE);
+    photoGilt(s).traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      // the photo's lapis curls are dark and greyed by the floods: push bluish texels back to
+      // the painted cobalt of the real hair (gilt texels have red well over blue, untouched)
+      const mat = mesh.material as THREE.MeshStandardMaterial;
       mat.onBeforeCompile = (sh) => {
         sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
-          { vec3 c = diffuseColor.rgb; float blu = smoothstep(-0.01, 0.06, c.b - c.r * 0.8);
-            diffuseColor.rgb = mix(c, vec3(0.09, 0.17, 0.55) * (0.6 + 1.6 * dot(c, vec3(0.333))), blu * 0.9); }`);
+          { vec3 c = diffuseColor.rgb; float blu = smoothstep(0.0, 0.05, c.b - c.r);
+            diffuseColor.rgb = mix(c, vec3(0.05, 0.11, 0.42) * (0.7 + 2.0 * dot(c, vec3(0.333))), blu * 0.85); }`);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+          { vec3 e = texture2D(emissiveMap, vEmissiveMapUv).rgb; float blu = smoothstep(0.0, 0.05, e.b - e.r);
+            totalEmissiveRadiance *= 1.0 - 0.7 * blu; }`);
       };
       mat.customProgramCacheKey = () => 'tibetan-shakyamuni';
-      mat.needsUpdate = true;
     });
-    // TRELLIS meshes are centred on the origin and face +z: turn to face the door
-    s.scale.setScalar(BUDDHA_SCALE);
-    s.position.y = 0.5 * BUDDHA_SCALE + 0.12;
-    s.rotation.y = Math.PI;
     buddhaSlot.add(s);
   }).catch(() => {
     loadStatue('tibetan', 'tibetan-painted').then((s) => {
       s.scale.setScalar(BUDDHA_H / 1.0);
-      s.rotation.y = Math.PI;
       buddhaSlot.add(s);
     }).catch(() => {});
   });
 
-  // the flanking images: baked sculpts finished with their attributes
-  const guruSlot = new THREE.Group();
-  guruSlot.position.set(GURU.x, TOP + FLANK_PLINTH, GURU.z);
-  guruSlot.rotation.y = Math.PI;
-  guruSlot.scale.setScalar(FLANK_SCALE);
-  statues.add(guruSlot);
-  guruSlot.add(guruAttributes(m));
-  loadStatue('tibetan-guru', 'tibetan-painted').then((s) => guruSlot.add(s)).catch(() => {});
-  const amiSlot = new THREE.Group();
-  amiSlot.position.set(AMITAYUS.x, TOP + FLANK_PLINTH, AMITAYUS.z);
-  amiSlot.rotation.y = Math.PI;
-  amiSlot.scale.setScalar(FLANK_SCALE);
-  statues.add(amiSlot);
-  amiSlot.add(amitayusAttributes(m));
-  loadStatue('tibetan-amitayus', 'tibetan-painted').then((s) => amiSlot.add(s)).catch(() => {});
+  // the flanking images: photo reliefs, back against the niche, facing the door
+  const flank = (id: string, fallback: string, f: { x: number; z: number }) => {
+    const slot = new THREE.Group();
+    slot.position.set(f.x, TOP + FLANK_SEAT, A.z1 - 0.55);
+    // a relief holds best near its photo's axis: turn each a little toward the aisle and lean
+    // it forward toward pilgrims below, as the photographs were taken from the hall floor
+    slot.rotation.set(0.1, Math.PI + Math.sign(f.x) * 0.36, 0, 'YXZ');
+    statues.add(slot);
+    loadStatue(id, 'gilt').then((s) => slot.add(grazingShade(photoGilt(s, true)))).catch(() => {
+      loadStatue(fallback, 'tibetan-painted').then((s) => { s.scale.setScalar(3.15); slot.add(s); }).catch(() => {});
+    });
+  };
+  flank('tibetan-guru-photo', 'tibetan-guru', GURU);
+  flank('tibetan-amitayus-photo', 'tibetan-amitayus', AMITAYUS);
 
   // ---- light: warm floods on the gold, the chandeliers, the butter lamps ----
   const spot = new THREE.SpotLight(0xffd9a0, 260, 30, 0.36, 0.5, 1.4);
@@ -351,125 +377,4 @@ export function buildAltar(m: Mats) {
       (m.cases as THREE.MeshStandardMaterial).emissiveIntensity = 0.06 + night * 0.3;
     },
   };
-}
-
-/**
- * Guru Rinpoche's attributes in sculpt space (the sculpt faces +z, head at y 0.93, its left
- * hand on +x): the lotus hat with vulture feather, the khatvanga in the crook of the left
- * arm, the skull cup with a long-life vase in the lap, a moustache, earrings and necklace.
- */
-function guruAttributes(m: Mats) {
-  const g = new THREE.Group();
-  const b = new Batch();
-  const red = new THREE.MeshStandardMaterial({ color: 0x9c2420, roughness: 0.5 });
-  const jewelBlue = new THREE.MeshStandardMaterial({ color: 0x2a6fc0, roughness: 0.2, metalness: 0.3 });
-  const jewelRed = new THREE.MeshStandardMaterial({ color: 0xc0283a, roughness: 0.2, metalness: 0.3 });
-  const bone = new THREE.MeshStandardMaterial({ color: 0xf0e8d6, roughness: 0.5 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.6 });
-  const H = 0.93;
-  // the lotus hat: a red rim, a gold dome, upturned side flaps, a half-vajra and a feather
-  b.add(lathe([[0.0, 0], [0.165, 0], [0.175, 0.035], [0.165, 0.06], [0.0, 0.06]], 28), red, 0, H + 0.035, -0.005);
-  b.add(lathe([[0.0, 0], [0.15, 0], [0.145, 0.06], [0.125, 0.12], [0.095, 0.18], [0.06, 0.23], [0.03, 0.26], [0.0, 0.27]], 28), m.gold, 0, H + 0.09, -0.005, 0, 0, 0, true);
-  b.add(lathe([[0.0, 0], [0.152, 0], [0.152, 0.025], [0.0, 0.025]], 28), red, 0, H + 0.13, -0.005);
-  // the upturned front and side flaps, jewelled
-  b.add(new THREE.BoxGeometry(0.13, 0.1, 0.016), m.gold, 0, H + 0.14, 0.145, 0, -0.3);
-  b.add(new THREE.SphereGeometry(0.022, 8, 6), jewelBlue, 0, H + 0.145, 0.16);
-  for (const s of [-1, 1]) {
-    b.add(new THREE.BoxGeometry(0.06, 0.16, 0.016), m.gold, s * 0.16, H + 0.1, 0.06, s * 0.6, 0, -s * 0.45);
-    b.add(new THREE.BoxGeometry(0.05, 0.12, 0.014), red, s * 0.12, H + 0.06, -0.12, s * 2.4, 0, -s * 0.2);
-  }
-  // half-vajra finial and the vulture feather
-  b.add(new THREE.SphereGeometry(0.022, 8, 6), m.gold, 0, H + 0.37, -0.005);
-  for (const dx of [-0.02, 0, 0.02]) b.add(new THREE.ConeGeometry(0.01, 0.09, 6), m.gold, dx, H + 0.43, -0.005, 0, 0, -dx * 8);
-  const feather = new THREE.SphereGeometry(0.03, 8, 6);
-  feather.scale(0.55, 3.2, 0.35);
-  b.add(feather, dark, 0.0, H + 0.5, -0.03, 0, -0.15, 0.08);
-  // moustache, curled up at the ends, and a small goatee
-  for (const s of [-1, 1]) {
-    const pts = [new THREE.Vector3(0.004 * s, H - 0.072, 0.128), new THREE.Vector3(0.025 * s, H - 0.075, 0.122), new THREE.Vector3(0.04 * s, H - 0.065, 0.112)];
-    b.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, 0.0045, 5), dark, 0, 0, 0);
-  }
-  b.add(new THREE.ConeGeometry(0.006, 0.022, 6), dark, 0, H - 0.13, 0.112, 0, Math.PI);
-  // large round earrings and a jewelled necklace
-  for (const s of [-1, 1]) {
-    b.add(new THREE.TorusGeometry(0.025, 0.007, 6, 14), m.gold, s * 0.118, H - 0.1, 0.0, Math.PI / 2);
-    b.add(new THREE.SphereGeometry(0.012, 8, 6), jewelBlue, s * 0.118, H - 0.1, 0.02);
-  }
-  const neck = new THREE.TorusGeometry(0.12, 0.012, 6, 28, Math.PI);
-  b.add(neck, m.gold, 0, H - 0.2, 0.05, 0, Math.PI / 2 + 0.35, Math.PI);
-  for (let i = 0; i < 7; i++) {
-    const a = Math.PI * (0.15 + (i / 6) * 0.7);
-    b.add(new THREE.SphereGeometry(0.012, 8, 6), i % 2 ? jewelRed : jewelBlue, Math.cos(a) * 0.12, H - 0.2 - Math.sin(a) * 0.1, 0.09 + Math.sin(a) * 0.035);
-  }
-  // the skull cup with the long-life vase standing in it, on the hands in the lap
-  b.add(new THREE.SphereGeometry(0.06, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), bone, 0.0, 0.43, 0.24);
-  b.add(lathe([[0, 0], [0.02, 0], [0.032, 0.03], [0.012, 0.07], [0.024, 0.085], [0.006, 0.12], [0, 0.13]], 12), m.gold, 0.0, 0.42, 0.24);
-  // the khatvanga: a gold staff in the crook of the left arm, crowned by a double vajra,
-  // three heads (fresh, decaying, skull) and a trident, with red and white ribbons
-  const base = new THREE.Vector3(0.12, 0.3, 0.22), tip = new THREE.Vector3(0.25, 1.32, 0.06);
-  const dir = tip.clone().sub(base);
-  const len = dir.length();
-  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-  const at = (t: number) => base.clone().addScaledVector(dir, t);
-  const place = (geo: THREE.BufferGeometry, mat: THREE.Material, t: number, extra = new THREE.Vector3()) => {
-    const p = at(t).add(extra);
-    b.addM(geo, mat, new THREE.Matrix4().compose(p, q, new THREE.Vector3(1, 1, 1)));
-  };
-  place(new THREE.CylinderGeometry(0.008, 0.008, len, 6), m.gold, 0.5);
-  place(new THREE.SphereGeometry(0.018, 8, 6), m.gold, 0.7);
-  place(new THREE.SphereGeometry(0.022, 8, 6), red, 0.77);
-  place(new THREE.SphereGeometry(0.02, 8, 6), m.gold, 0.83);
-  place(new THREE.SphereGeometry(0.018, 8, 6), bone, 0.89);
-  for (const dx of [-0.028, 0, 0.028]) place(new THREE.ConeGeometry(0.006, 0.07, 5), m.gold, 0.96, new THREE.Vector3(dx, 0.01, 0));
-  for (const s of [-1, 1]) {
-    const rib = new THREE.PlaneGeometry(0.018, 0.22);
-    const p = at(0.72).add(new THREE.Vector3(s * 0.03, -0.12, 0.01));
-    b.add(rib, s > 0 ? red : bone, p.x, p.y, p.z, 0, 0, s * 0.15);
-  }
-  b.build(g);
-  return g;
-}
-
-/** Amitayus's attributes: a tall five-leaf crown, disc earrings, necklaces, the vase */
-function amitayusAttributes(m: Mats) {
-  const g = new THREE.Group();
-  const b = new Batch();
-  const jewelBlue = new THREE.MeshStandardMaterial({ color: 0x2a5fb8, roughness: 0.2, metalness: 0.3 });
-  const jewelRed = new THREE.MeshStandardMaterial({ color: 0xc0283a, roughness: 0.2, metalness: 0.3 });
-  const H = 0.93;
-  // five crown leaves, pointed, set on a band round the head
-  const leafShape = new THREE.Shape();
-  leafShape.moveTo(-0.045, 0);
-  leafShape.quadraticCurveTo(-0.055, 0.07, 0, 0.13);
-  leafShape.quadraticCurveTo(0.055, 0.07, 0.045, 0);
-  leafShape.lineTo(-0.045, 0);
-  const leafGeo = new THREE.ExtrudeGeometry(leafShape, { depth: 0.01, bevelEnabled: false });
-  b.add(new THREE.TorusGeometry(0.122, 0.012, 6, 28), m.gold, 0, H + 0.07, -0.005, 0, Math.PI / 2);
-  for (let i = -2; i <= 2; i++) {
-    const a = i * 0.48;
-    const x = Math.sin(a) * 0.125, z = Math.cos(a) * 0.125 - 0.005;
-    b.add(leafGeo, m.gold, x, H + 0.075, z, a, -0.12, 0, true);
-    b.add(new THREE.SphereGeometry(0.016, 8, 6), i % 2 ? jewelRed : jewelBlue, x * 1.08, H + 0.12, z * 1.08 + 0.01);
-  }
-  // the blue topknot with a jewel finial
-  b.add(new THREE.SphereGeometry(0.05, 12, 8), jewelBlue, 0, H + 0.2, -0.01);
-  b.add(new THREE.ConeGeometry(0.03, 0.08, 10), m.gold, 0, H + 0.27, -0.01);
-  // large disc earrings, blue with a red centre
-  for (const s of [-1, 1]) {
-    b.add(new THREE.CylinderGeometry(0.035, 0.035, 0.01, 16), jewelBlue, s * 0.13, H - 0.12, 0.0, 0, 0, Math.PI / 2);
-    b.add(new THREE.SphereGeometry(0.012, 8, 6), jewelRed, s * 0.137, H - 0.12, 0.0);
-  }
-  // necklaces of gold with blue and red stones
-  for (const [r, y] of [[0.11, H - 0.2], [0.15, H - 0.26]] as const) {
-    b.add(new THREE.TorusGeometry(r, 0.01, 6, 28, Math.PI), m.gold, 0, y, 0.05, 0, Math.PI / 2 + 0.35, Math.PI);
-    for (let i = 0; i < 7; i++) {
-      const a = Math.PI * (0.15 + (i / 6) * 0.7);
-      b.add(new THREE.SphereGeometry(0.012, 8, 6), i % 2 ? jewelRed : jewelBlue, Math.cos(a) * r, y - Math.sin(a) * r * 0.8, 0.09 + Math.sin(a) * 0.04);
-    }
-  }
-  // the long-life vase held in both hands in the lap
-  b.add(lathe([[0, 0], [0.03, 0], [0.05, 0.04], [0.045, 0.07], [0.018, 0.09], [0.022, 0.11], [0.03, 0.13], [0.012, 0.15], [0, 0.17]], 14), m.gold, 0, 0.4, 0.24, 0, 0, 0, true);
-  b.add(new THREE.TorusGeometry(0.048, 0.008, 6, 16), jewelBlue, 0, 0.44, 0.24, 0, Math.PI / 2);
-  b.build(g);
-  return g;
 }

@@ -27,6 +27,60 @@ To rebuild the clips, download the `.glb` files listed in `scripts/mocap/build.t
   [Spark](https://sparkjs.dev) (MIT). The sculpted statue from `scripts/statues/build.ts` is
   the fallback if the splat cannot load.
 
+The images in the other three rooms are made from photographs on Wikimedia Commons: an
+image-to-3D reconstruction (TRELLIS on Hugging Face) or a monocular depth estimate (Depth
+Anything V2, run locally), cut out, cleaned and coloured from the photo. Each model is an
+adaptation of its photographs and is shared under the same licence (CC BY-SA where the
+photo is CC BY-SA).
+
+**Namdroling (Tibetan room)**
+- Shakyamuni (`tibetan-shakyamuni.glb`) and the torana behind it (`tibetan-torana.glb`):
+  [Statue in 2011 detail, Namrodoling Monastery (Golden Temple) Bylakuppe 6746 (cropped).JPG](https://commons.wikimedia.org/wiki/File:Statue_in_2011_detail,_Namrodoling_Monastery_(Golden_Temple)_Bylakuppe_6746_(cropped).JPG)
+  by Rameshng, CC BY-SA 3.0.
+- Guru Rinpoche (`tibetan-guru-photo.glb`):
+  [Close up of Three Statues - Namdroling Monastry , Bylekuppe.jpg](https://commons.wikimedia.org/wiki/File:Close_up_of_Three_Statues_-_Namdroling_Monastry_,_Bylekuppe.jpg)
+  by Bikashrd, CC BY-SA 4.0, and
+  [Padmasambhava image, Namdroling.jpg](https://commons.wikimedia.org/wiki/File:Padmasambhava_image,_Namdroling.jpg)
+  by Christopher J. Fynn, CC BY-SA 4.0.
+- Amitayus (`tibetan-amitayus-photo.glb`): the same three-statue photo by Bikashrd, and
+  [Buddha Amiyatus , Namdroling Monastry , Bylekuppe.jpg](https://commons.wikimedia.org/wiki/File:Buddha_Amiyatus_,_Namdroling_Monastry_,_Bylekuppe.jpg)
+  by Bikashrd, both CC BY-SA 4.0.
+
+**Wat Phra Si Rattana Mahathat (Theravada room)**
+- Phra Buddha Chinnarat (`theravada.spz`, and the relief stand-in `theravada-relief.glb`):
+  [2013 Phra Buddha Chinnarat 01.jpg](https://commons.wikimedia.org/wiki/File:2013_Phra_Buddha_Chinnarat_01.jpg)
+  by Takeaway, CC BY-SA 3.0.
+- Thao Wessuwan (`theravada-wessuwan.spz`):
+  [ท้าวเวสสุวัณพระพุทธชินราช.jpg](https://commons.wikimedia.org/wiki/File:ท้าวเวสสุวัณพระพุทธชินราช.jpg)
+  by Mastertongapollo, CC BY-SA 4.0.
+- Alavaka (`theravada-alavaka.spz`):
+  [อาฬวกยักษ์พระพุทธชินราช.jpg](https://commons.wikimedia.org/wiki/File:อาฬวกยักษ์พระพุทธชินราช.jpg)
+  by Mastertongapollo, CC BY-SA 4.0.
+- The seated images in the aisles and cloister (`theravada-small.spz`, `theravada-small-lo.spz`),
+  from the Phra Buddha Chinnasi in
+  [พระพุทธชินราชและพระพุทธชินสีห์.jpg](https://commons.wikimedia.org/wiki/File:พระพุทธชินราชและพระพุทธชินสีห์.jpg)
+  by Mastertongapollo, CC BY-SA 4.0.
+- Phra Attharot (`theravada-attharot.spz`):
+  [วัดพระศรีรัตนมหาธาตุวรมหาวิหาร อ.เมือง จ.พิษณุโลก (19).JPG](https://commons.wikimedia.org/wiki/File:วัดพระศรีรัตนมหาธาตุวรมหาวิหาร_อ.เมือง_จ.พิษณุโลก_(19).JPG)
+  by กสิณธร ราชโอรส, CC BY-SA 4.0.
+
+**Tōdai-ji (Mahayana room)**
+- The Great Buddha (`mahayana.spz`; mesh stand-in `mahayana-trellis.glb`): shape from
+  [20190121 Tōdai-ji Great Buddha-2.jpg](https://commons.wikimedia.org/wiki/File:20190121_Tōdai-ji_Great_Buddha-2.jpg)
+  by Balon Greyjoy, CC0; warped to and coloured from
+  [Great Buddha at Todaiji, Nara.jpg](https://commons.wikimedia.org/wiki/File:Great_Buddha_at_Todaiji,_Nara.jpg)
+  by Manishprabhune, CC BY-SA 4.0.
+- Nyoirin Kannon (`textures/mahayana/nyoirin.webp`):
+  [Nara Todai-ji Daibutsuden Interior Statue of Nyoirin Kannon 1.jpg](https://commons.wikimedia.org/wiki/File:Nara_Todai-ji_Daibutsuden_Interior_Statue_of_Nyoirin_Kannon_1.jpg)
+  by Zairon, CC BY 4.0.
+- Kokūzō Bosatsu (`textures/mahayana/kokuzo.webp`):
+  [Nara Todai-ji Daibutsuden Interior Statue of Kokuzo Bosatsu 3.jpg](https://commons.wikimedia.org/wiki/File:Nara_Todai-ji_Daibutsuden_Interior_Statue_of_Kokuzo_Bosatsu_3.jpg)
+  by Zairon, CC BY 4.0.
+- Kōmokuten and Tamonten (`textures/mahayana/komokuten.webp`, `tamonten.webp`):
+  [20190121 Tōdai-ji statue-6.jpg](https://commons.wikimedia.org/wiki/File:20190121_Tōdai-ji_statue-6.jpg)
+  and [20190121 Tōdai-ji statue-2.jpg](https://commons.wikimedia.org/wiki/File:20190121_Tōdai-ji_statue-2.jpg)
+  by Balon Greyjoy, CC0.
+
 ## Instrument sounds
 
 The singing bowl (struck and sung), drilbu bell, damaru, drum, cymbals, gong, temple
@@ -44,6 +98,17 @@ ships with the site and is linked from the settings sheet. The synthesized voice
   by the BodhGaya Events channel on YouTube (YouTube standard license), extracted and
   loudness-normalised. It plays on "Listen to chanting" and at the dawn and evening
   services in the Bodh Gaya room.
+- The other rooms' chants are the first 20 minutes of YouTube recordings (YouTube standard
+  license), extracted to MP3:
+  - Namdroling (`public/audio/tibetan/drubchen-puja-namdroling.mp3`):
+    ["2024 Drubchen Puja at Namdroling Monastery South India"](https://www.youtube.com/watch?v=esSPYfN3tHY)
+    by KD Memory Clips.
+  - Wat Phra Si Rattana Mahathat (`public/audio/theravada/evening-chanting-chinnarat.mp3`):
+    ["The Wat Phra Ratana Mahathat Monks chanting Phitsanulok Thailand"](https://www.youtube.com/watch?v=xkcHShLeprk)
+    by fully being.
+  - Tōdai-ji (`public/audio/mahayana/shunie-chant-todaiji.mp3`):
+    ["Buddhist Chant Of Shuni-e Ceremony, Todai-Ji"](https://www.youtube.com/watch?v=7--DJFg-C0k)
+    by Yamabiko Factory.
 
 ## The Bodhi leaf
 

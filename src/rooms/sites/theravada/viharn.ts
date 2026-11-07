@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Box2 } from '../../types';
-import { FLOOR, HALL, OUTER, PORCH, STEPS } from './plan';
+import { CARPET, FLOOR, HALL, OUTER, PORCH, STEPS } from './plan';
 import { boxAt, canvasTex, cutout, finialGeometry, merged, panel, quad, tex } from './util';
 
 // The great viharn of Phra Buddha Chinnarat: a long, low hall on a white plinth,
@@ -15,24 +15,25 @@ import { boxAt, canvasTex, cutout, finialGeometry, merged, panel, quad, tex } fr
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
 /** roof tiers in the cross-section (z from the ridge line, y up), for the main section */
+// four thin tiers stacked like scales, each lapping over the one below (Watyai 31, panoramio
+// photos on Commons), the lowest sweeping out past the wall to about 5 m
 const TIERS = [
-  { zTop: 0, yTop: 16.0, zBot: 5.0, yBot: 11.6 },
-  { zTop: 4.6, yTop: 11.9, zBot: 8.2, yBot: 8.3 },
-  { zTop: 7.9, yTop: 8.0, zBot: 11.4, yBot: 3.4 },
+  { zTop: 0, yTop: 15.6, zBot: 3.7, yBot: 12.2 },
+  { zTop: 3.4, yTop: 12.5, zBot: 5.7, yBot: 10.2 },
+  { zTop: 5.4, yTop: 10.5, zBot: 7.7, yBot: 8.0 },
+  { zTop: 7.4, yTop: 8.3, zBot: 10.2, yBot: 5.0 },
 ];
 /** the roof sections, west to east; the front one sits lower (the roof telescopes) */
 const SECTIONS = [
-  { x0: -1.3, x1: 3.6, dy: -1.0, westGable: true, eastGable: false },
+  { x0: -1.3, x1: 3.6, dy: -0.9, westGable: true, eastGable: false },
   { x0: 3.6, x1: 37.3, dy: 0, westGable: true, eastGable: true },
 ];
-/** exterior wall height (the tiers sit just above it) */
-const WALL_OUT = 7.8;
-/** the open veranda posts carrying the lowest tier */
-const VERANDA_Z = 11.0;
+/** exterior wall height (the front section's lowest tier passes just above it) */
+const WALL_OUT = 6.9;
 
 /** height of the lowest tier above the ground at distance z from the ridge */
-function tierCAt(z: number, dy: number) {
-  const t = TIERS[2];
+function tierDAt(z: number, dy: number) {
+  const t = TIERS[3];
   return t.yTop + dy - ((z - t.zTop) / (t.zBot - t.zTop)) * (t.yTop - t.yBot);
 }
 
@@ -72,8 +73,8 @@ export function buildViharn() {
   const porchFloor = new THREE.Mesh(new THREE.PlaneGeometry(PORCH.x1 - PORCH.x0, 2 * PORCH.halfW).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xcfc6b6, roughness: 0.45 }));
   porchFloor.position.set((PORCH.x0 + PORCH.x1) / 2, FLOOR + 0.003, 0);
   porchFloor.receiveShadow = true;
-  const carpet = new THREE.Mesh(new THREE.PlaneGeometry(18, 6.2).rotateX(-Math.PI / 2), carpetMat);
-  carpet.position.set(18, FLOOR + 0.012, 0);
+  const carpet = new THREE.Mesh(new THREE.PlaneGeometry(CARPET.x1 - CARPET.x0, 2 * CARPET.halfW).rotateX(-Math.PI / 2), carpetMat);
+  carpet.position.set((CARPET.x0 + CARPET.x1) / 2, FLOOR + 0.012, 0);
   carpet.receiveShadow = true;
   group.add(hallFloor, porchFloor, carpet);
   floor.push(hallFloor, porchFloor, carpet);
@@ -122,37 +123,42 @@ export function buildViharn() {
     { x0: HALL.x1, x1: OUTER.x1, z0: -OUTER.halfW, z1: OUTER.halfW },
   );
 
-  // windows: daylight in the opening, red-and-gold shutters folded back inside
-  const shutterTex = canvasTex(128, 256, (g) => {
-    g.fillStyle = '#6a1712';
-    g.fillRect(0, 0, 128, 256);
-    g.strokeStyle = '#c9962c';
-    g.lineWidth = 6;
-    g.strokeRect(10, 10, 108, 236);
-    g.fillStyle = '#c9962c';
-    for (let y = 40; y < 240; y += 44) {
-      g.beginPath(); g.moveTo(64, y - 16); g.lineTo(84, y); g.lineTo(64, y + 16); g.lineTo(44, y); g.closePath(); g.fill();
-    }
-  });
-  const shutterMat = new THREE.MeshStandardMaterial({ map: shutterTex, roughness: 0.5, metalness: 0.2 });
-  const daylightMat = new THREE.MeshBasicMaterial({ color: 0xdfe9f0 });
+  // windows: daylight in the opening; inside, the two black-lacquer leaves stand open, folded
+  // flat against the wall either side, gilt with lai rot nam like the columns
+  const shutterMat = tex('column', { roughness: 0.4, metalness: 0.25, color: 0xd8c8a8 }, [0.5, 1.2]);
+  const daylightMat = new THREE.MeshBasicMaterial({ color: 0xb8c4cc });
   const lightGeos: THREE.BufferGeometry[] = [];
   const shutterGeos: THREE.BufferGeometry[] = [];
+  const liningGeos: THREE.BufferGeometry[] = [];
   for (const s of [-1, 1]) {
     for (const x of winXs) {
       const g = panel(2 * winHalf, lintel - sill, s < 0 ? 'z+' : 'z-');
       g.translate(x, (sill + lintel) / 2, s * (hw + W * 0.7));
       lightGeos.push(g);
       for (const side of [-1, 1]) {
-        const leaf = boxAt(0.04, lintel - sill, winHalf, 0, 0, 0);
-        leaf.translate(x + side * (winHalf + 0.03), (sill + lintel) / 2, s * (hw - winHalf / 2));
+        const leaf = panel(winHalf - 0.04, lintel - sill - 0.06, s < 0 ? 'z+' : 'z-');
+        leaf.translate(x + side * (winHalf * 1.5 + 0.03), (sill + lintel) / 2, s * (hw - 0.05));
         shutterGeos.push(leaf);
       }
+    }
+    // the inner wall below the murals: dark red lacquer sown with small gilt flowers
+    const edges = [0, ...winXs.flatMap((x) => [x - winHalf, x + winHalf]), HALL.x1];
+    for (let i = 0; i < edges.length; i += 2) {
+      const l = panel(edges[i + 1] - edges[i], lintel + 0.22 - (FLOOR + 0.9), s < 0 ? 'z+' : 'z-');
+      l.translate((edges[i] + edges[i + 1]) / 2, (lintel + 0.22 + FLOOR + 0.9) / 2, s * (hw - 0.012));
+      liningGeos.push(l);
+    }
+    // window reveals, lacquered too
+    for (const x of winXs) {
+      liningGeos.push(boxAt(2 * winHalf, 0.02, W, x, sill + 0.01, s * (hw + W / 2)));
+      liningGeos.push(boxAt(2 * winHalf, 0.02, W, x, lintel - 0.01, s * (hw + W / 2)));
+      for (const side of [-1, 1]) liningGeos.push(boxAt(0.02, lintel - sill, W, x + side * (winHalf - 0.01), (sill + lintel) / 2, s * (hw + W / 2)));
     }
   }
   const windowLight = merged(lightGeos, daylightMat, false);
   windowLight.receiveShadow = false;
-  group.add(windowLight, merged(shutterGeos, shutterMat, false));
+  const lining = tex('backdrop', { roughness: 0.5, metalness: 0.15, color: 0x9a5040 }, [1.6, 1.6]);
+  group.add(windowLight, merged(shutterGeos, shutterMat, false), merged(liningGeos, lining, false));
 
   // murals in a band above the windows, the length of both side walls
   for (const s of [-1, 1]) {
@@ -310,20 +316,26 @@ export function buildViharn() {
       const out = west ? -1 : 1;
       const A = TIERS[0], B = TIERS[1];
       const xi = xe - out * 0.35; // set back under the overhang
-      // dark backing triangle and trapezoid
-      const tri = new THREE.BufferGeometry();
-      tri.setAttribute('position', new THREE.Float32BufferAttribute([xi, A.yBot + dy, -A.zBot, xi, A.yBot + dy, A.zBot, xi, A.yTop + dy - 0.2, 0], 3));
-      tri.computeVertexNormals();
-      backGeos.push(tri);
-      backGeos.push(quad(V(xi, WALL_OUT + dy - 0.2, -B.zBot), V(xi, WALL_OUT + dy - 0.2, B.zBot), V(xi, B.yTop + dy, B.zTop), V(xi, B.yTop + dy, -B.zTop)));
+      // the dark red gable wall, filling the stepped outline of the four tiers
+      const outline: [number, number][] = [[OUTER.halfW, WALL_OUT + dy - 0.2]];
+      for (let i = TIERS.length - 1; i >= 0; i--) outline.push([TIERS[i].zTop + (i ? 0.15 : 0), TIERS[i].yTop + dy - (i ? 0.2 : 0.35)]);
+      const shape = new THREE.Shape();
+      shape.moveTo(-outline[0][0], outline[0][1]);
+      for (const [z, y] of outline.slice(1)) shape.lineTo(-z, y);
+      for (const [z, y] of outline.slice(0, -1).reverse()) shape.lineTo(z, y);
+      const gw0 = new THREE.ShapeGeometry(shape);
+      gw0.rotateY(west ? -Math.PI / 2 : Math.PI / 2);
+      gw0.translate(xi, 0, 0);
+      backGeos.push(gw0);
       // the gilded carving, stretched over the triangle with its bargeboards overhanging
-      const gw = 2 * A.zBot + 2.0, gh = A.yTop - A.yBot + 1.6;
+      // (it spans the top two tiers, as the great gilt gable of the real front does)
+      const gw = 2 * B.zBot + 2.0, gh = A.yTop - B.yBot + 1.6;
       const gp = panel(gw, gh, west ? 'x-' : 'x+');
-      gp.translate(xi + out * 0.1, A.yBot + dy - 0.55 + gh / 2, 0);
+      gp.translate(xi + out * 0.1, B.yBot + dy - 0.55 + gh / 2, 0);
       gablePanels.push(gp);
       // a row of red-and-gold panels (luk fak) across the band below
-      const lf = panel(2 * B.zBot - 3.0, 0.8, west ? 'x-' : 'x+');
-      lf.translate(xi + out * 0.05, A.yBot + dy - 0.75, 0);
+      const lf = panel(2 * TIERS[2].zBot - 3.6, 0.8, west ? 'x-' : 'x+');
+      lf.translate(xi + out * 0.05, B.yBot + dy - 0.75, 0);
       lukFak.push(lf);
       // chofa: the slender gilded bird-beak finial at the peak
       // seen in profile from the side, its beak curling out over the gable
@@ -358,24 +370,28 @@ export function buildViharn() {
   lukTex.wrapS = THREE.ClampToEdgeWrapping;
   group.add(merged(lukFak, new THREE.MeshStandardMaterial({ map: lukTex, metalness: 0.4, roughness: 0.45 }), false));
 
-  // veranda posts under the lowest tier, white with gilt capitals
-  const postGeos: THREE.BufferGeometry[] = [];
-  const postCaps: THREE.BufferGeometry[] = [];
-  const eaveBeams: THREE.BufferGeometry[] = [];
+  // no veranda: the lowest tier rides on the wall and oversails it, carried on carved brackets
+  // (khan thuai) springing from the pilasters; a dark red frieze closes the gap above the wall
+  const bracketGeos: THREE.BufferGeometry[] = [];
+  const friezeGeos: THREE.BufferGeometry[] = [];
   for (const s of [-1, 1]) {
     for (let x = 0; x <= 36; x += 4) {
       const dy = x < SECTIONS[1].x0 ? SECTIONS[0].dy : 0;
-      const h = tierCAt(VERANDA_Z, dy) - 0.1;
-      postGeos.push(boxAt(0.42, h, 0.42, x, h / 2, s * VERANDA_Z));
-      postCaps.push(boxAt(0.52, 0.22, 0.52, x, h - 0.2, s * VERANDA_Z));
-      colliders.push({ x0: x - 0.3, x1: x + 0.3, z0: s * VERANDA_Z - 0.3, z1: s * VERANDA_Z + 0.3 });
+      // a gilt triangular bracket: its back on the pilaster, its top under the eave
+      const z0 = OUTER.halfW + 0.12, zEnd = 9.2, yTop = tierDAt(zEnd, dy) - 0.1, yWall = tierDAt(z0, dy) - 0.15;
+      const sh = new THREE.Shape();
+      sh.moveTo(0, yWall - 2.6); sh.lineTo(0, yWall); sh.lineTo(zEnd - z0, yTop); sh.quadraticCurveTo(0.5, yTop - 0.6, 0, yWall - 2.6);
+      const b = new THREE.ExtrudeGeometry(sh, { depth: 0.14, bevelEnabled: false, curveSegments: 6 });
+      b.translate(0, 0, -0.07).rotateY((-s * Math.PI) / 2); // the shape's x runs out from the wall
+      b.translate(x, 0, s * z0);
+      bracketGeos.push(b);
     }
-    // the beam the posts carry, stepping down at the front section
-    const hMain = tierCAt(VERANDA_Z, 0), hFront = tierCAt(VERANDA_Z, SECTIONS[0].dy);
-    eaveBeams.push(boxAt(SECTIONS[1].x1 - SECTIONS[1].x0, 0.25, 0.3, (SECTIONS[1].x0 + SECTIONS[1].x1) / 2, hMain - 0.15, s * VERANDA_Z));
-    eaveBeams.push(boxAt(SECTIONS[0].x1 - SECTIONS[0].x0, 0.25, 0.3, (SECTIONS[0].x0 + SECTIONS[0].x1) / 2, hFront - 0.15, s * VERANDA_Z));
+    for (const sec of SECTIONS) {
+      const top = tierDAt(OUTER.halfW, sec.dy);
+      if (top > WALL_OUT + 0.02) friezeGeos.push(boxAt(sec.x1 - sec.x0, top - WALL_OUT + 0.1, 0.3, (sec.x0 + sec.x1) / 2, (top + WALL_OUT) / 2 - 0.05, s * (OUTER.halfW - 0.15)));
+    }
   }
-  group.add(merged(postGeos, plaster), merged(postCaps, gold, false), merged(eaveBeams, lacquerRed, false));
+  group.add(merged(bracketGeos, gold, false), merged(friezeGeos, lacquerRed, false));
 
   // ---- interior ----------------------------------------------------------------
   // black-and-gold lacquer columns with gilded lotus-bud capitals

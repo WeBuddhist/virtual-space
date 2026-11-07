@@ -5,6 +5,7 @@ import { loadStatue } from '../../../kit/statue';
 import { photo } from '../../../kit/textures';
 import type { Box2 } from '../../types';
 import { HALL_Y } from './hall';
+import { relief } from './relief';
 import { Batch, canvasTex, cutout, std, TEX } from './util';
 
 // The Great Buddha (Rushana-butsu, Vairocana) of Tōdai-ji and its setting:
@@ -22,12 +23,16 @@ const PLAT_R = 13, PLAT_TOP = HALL_Y + 2.2;
 /** top of the bronze lotus, where the figure sits */
 const SEAT_Y = PLAT_TOP + 2.7;
 /** seated figure height (lotus top to the crown of the head) */
-const FIGURE_H = 15.4;
+const FIGURE_H = 15.6;
+/** splat units to metres (the splat is 1.08 units from the front of the lap to the crown) */
+const SPLAT_K = FIGURE_H / 1.081;
+/** how far below y = 0 the splat's lap reaches, in splat units */
+const SPLAT_BASE = 0.065;
 /** where seated visitors and the camera look: the face */
 export const FACE = new THREE.Vector3(0, SEAT_Y + FIGURE_H - 3.0, BUDDHA.z);
 /** the altar in front of the platform: its top is the offering ledge */
 export const ALTAR = { x0: -4.6, x1: 4.6, z0: 10.8, z1: 12.3, y: HALL_Y + 1.15 };
-export const OFFER_BOX_Z = 13.9;
+export const OFFER_BOX_Z = 14.4;
 
 const bronze = photo(std(0x4a4030, 0.5, 0.6), TEX + 'bronze.jpg', { repeat: [3, 1], mirror: true, keepColor: true });
 const goldLeaf = new THREE.MeshStandardMaterial({ color: 0xdcb04a, metalness: 0.95, roughness: 0.32 });
@@ -36,10 +41,12 @@ const railStone = std(0x857f73, 0.92);
 const lacquer = std(0x231611, 0.45, 0.05);
 
 /**
- * The figure, made from one real photograph (Wikimedia Commons, "20190121 Tōdai-ji Great
- * Buddha-2.jpg", CC0), masked to the bronze and run through TRELLIS image-to-3D: its mesh
- * (mahayana-trellis.glb, loaded behind the veil) stands in until the Gaussian splat
- * (mahayana.spz) decodes, then gives way to it. ?statue=mesh keeps the mesh.
+ * The figure. A TRELLIS image-to-3D reconstruction from one real photograph (Wikimedia Commons,
+ * "20190121 Tōdai-ji Great Buddha-2.jpg", CC0) gave the shape; because that photo was shot from
+ * far below, the splat (mahayana.spz) was then warped onto, and recoloured from, a second, more
+ * level photograph that shows the whole figure down to the knees ("Great Buddha at Todaiji,
+ * Nara.jpg", CC BY-SA 4.0) by reference/mahayana/retex/retex.py. The TRELLIS mesh
+ * (mahayana-trellis.glb) stands in until the splat decodes. ?statue=mesh keeps the mesh.
  */
 function buildFigure(slot: THREE.Group, mode: string) {
   const fit = (o: THREE.Object3D) => {
@@ -63,12 +70,21 @@ function buildFigure(slot: THREE.Group, mode: string) {
       m.castShadow = m.receiveShadow = true;
     });
     fit(g);
-    mesh = g;
-    if (!splatIn) slot.add(g);
+    // the raw reconstruction leans back and is squat: sit it upright and give the lap depth
+    const wrap = new THREE.Group();
+    wrap.rotation.x = 0.16;
+    wrap.scale.set(0.94, 1, 1.25);
+    wrap.position.y = -0.3;
+    wrap.add(g);
+    mesh = wrap;
+    if (!splatIn) slot.add(wrap);
   }).catch((e) => console.warn('mahayana statue mesh', e));
   if (mode === 'mesh') return;
   const splat = new SplatMesh({ url: '/models/statues/mahayana.spz' });
-  splat.scale.setScalar(FIGURE_H);
+  // the warped splat stands 1 unit from the front of the lap (y = -SPLAT_BASE) to the crown
+  splat.scale.set(SPLAT_K, SPLAT_K, SPLAT_K * 1.15);
+  splat.position.y = SPLAT_BASE * SPLAT_K;
+  splat.rotation.x = 0.06;
   splat.initialized.then(() => {
     splatIn = true;
     console.info('mahayana: statue splat ready');
@@ -83,8 +99,8 @@ function lotus(b: Batch, group: THREE.Group) {
   b.add(new THREE.CylinderGeometry(9.4, 10.2, SEAT_Y - PLAT_TOP, 40, 1), bronze, 0, (SEAT_Y + PLAT_TOP) / 2, cy);
   b.add(new THREE.CylinderGeometry(9.8, 9.4, 0.5, 40), bronze, 0, SEAT_Y - 0.1, cy);
   const petalMat = cutout(TEX + 'lotus-petal.jpg', { alphaTest: 0.006, color: 0x6a6252, metalness: 0.45, roughness: 0.66 });
-  const big = new THREE.PlaneGeometry(2.9, 3.4).translate(0, 1.7, 0);
-  const small = new THREE.PlaneGeometry(2.2, 2.6).translate(0, 1.3, 0);
+  const big = new THREE.PlaneGeometry(2.9, 2.75).translate(0, 1.375, 0);
+  const small = new THREE.PlaneGeometry(2.2, 2.2).translate(0, 1.1, 0);
   const petals: THREE.Mesh[] = [];
   const N = 28;
   for (let i = 0; i < N; i++) {
@@ -139,7 +155,8 @@ function lotusVase(b: Batch, x: number, y: number, z: number, rng: () => number)
     new THREE.Vector2(0.38, 1.55), new THREE.Vector2(0.6, 1.9), new THREE.Vector2(0.62, 1.95),
   ], 20);
   b.add(vase, goldLeaf, x, y, z);
-  const stem = std(0x8a7a3a, 0.4, 0.8), leaf = std(0x3f7a5c, 0.55, 0.4), white = std(0xd9b45a, 0.35, 0.85), pink = std(0xe8d6b8, 0.5, 0.2);
+  // painted metal, as on the real kebyō: green stems and leaves, pale pink and cream flowers
+  const stem = std(0x4a6a42, 0.6, 0.3), leaf = std(0x3f6a4a, 0.6, 0.3), white = std(0xeec9ad, 0.55, 0.1), pink = std(0xe9d7b8, 0.55, 0.1);
   const leafGeo = new THREE.CylinderGeometry(0.9, 0.7, 0.06, 14);
   const bud = new THREE.SphereGeometry(0.32, 10, 8).scale(1, 1.35, 1);
   const flower = new THREE.ConeGeometry(0.55, 0.6, 10, 1, true).rotateX(Math.PI);
@@ -159,25 +176,54 @@ function lotusVase(b: Batch, x: number, y: number, z: number, rng: () => number)
   }
 }
 
-/** the altar front: red and gold cloud scrolls on white, as on the Daibutsu's altar */
+/** the altar's hanging: orange brocade with gold karakusa scrolls and white chrysanthemum roundels */
 function altarCloth() {
-  return canvasTex(1024, 128, (g) => {
-    g.fillStyle = '#f1ebe0';
-    g.fillRect(0, 0, 1024, 128);
-    g.lineWidth = 9;
-    for (let i = 0; i < 18; i++) {
-      const x = 30 + i * 58, y = 64 + (i % 2 ? 18 : -18);
-      g.strokeStyle = i % 3 ? '#c4462e' : '#c9a24a';
+  return canvasTex(1024, 256, (g) => {
+    g.fillStyle = '#d8701e';
+    g.fillRect(0, 0, 1024, 256);
+    g.strokeStyle = '#f2c860';
+    g.lineWidth = 5;
+    for (let y = 18; y < 256; y += 44) for (let x = (y / 44) % 2 ? 0 : 22; x < 1060; x += 44) {
       g.beginPath();
-      g.arc(x, y, 20, 0.3, Math.PI * 1.7);
+      g.arc(x, y, 12, 0.2, Math.PI * 1.6);
       g.stroke();
       g.beginPath();
-      g.arc(x + 22, y + 6, 11, Math.PI, Math.PI * 2.6);
+      g.arc(x + 13, y - 7, 6, Math.PI * 0.6, Math.PI * 2.2);
       g.stroke();
     }
-    g.fillStyle = '#7a1f17';
-    g.fillRect(0, 0, 1024, 12);
-    g.fillRect(0, 116, 1024, 12);
+    // chrysanthemum roundels
+    for (const [cx, cy] of [[90, 170], [300, 120], [512, 175], [724, 120], [934, 170]]) {
+      g.fillStyle = '#efe7d8';
+      g.beginPath();
+      g.arc(cx, cy, 52, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = '#c9b89a';
+      g.lineWidth = 2;
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12);
+        g.lineTo(cx + Math.cos(a) * 50, cy + Math.sin(a) * 50);
+        g.stroke();
+      }
+      g.fillStyle = '#d9c9a8';
+      g.beginPath();
+      g.arc(cx, cy, 11, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+}
+
+/** the dais front: white boards between dark posts under a dark edge beam */
+function daisFront() {
+  return canvasTex(512, 64, (g) => {
+    g.fillStyle = '#e6e0d2';
+    g.fillRect(0, 0, 512, 64);
+    g.fillStyle = '#23262e';
+    for (let x = 0; x < 512; x += 128) g.fillRect(x, 0, 12, 64);
+    g.fillRect(0, 0, 512, 14);
+    g.fillStyle = '#7a2a24';
+    g.fillRect(0, 14, 512, 3);
   });
 }
 
@@ -196,28 +242,22 @@ function boxTexture() {
   });
 }
 
-/** a guardian king (Kōmokuten, Tamonten): armoured, glaring, on a rock, about 5 m */
-function guardian(x: number, z: number, yaw: number, robe: number, weaponUp: boolean) {
-  const g = new Batch();
-  const armour = std(robe, 0.6, 0.15), skin = std(0x5a3b2c, 0.6), trim = std(0xc9a24a, 0.35, 0.8), rock = std(0x3a3430, 0.95);
-  g.add(new THREE.DodecahedronGeometry(1.5, 0).scale(1.2, 0.5, 1), rock, 0, 0.6, 0);
-  for (const sx of [-1, 1]) g.add(new THREE.CylinderGeometry(0.28, 0.24, 1.9, 8), armour, sx * 0.4, 2.0, 0, 0, 0, sx * 0.12);
-  g.add(new THREE.CylinderGeometry(0.55, 0.95, 1.4, 10), armour, 0, 2.7, 0);
-  g.add(new THREE.CylinderGeometry(0.62, 0.55, 1.4, 10), armour, 0, 3.7, 0);
-  g.add(new THREE.TorusGeometry(0.62, 0.08, 6, 16).rotateX(Math.PI / 2), trim, 0, 3.15, 0);
-  for (const sx of [-1, 1]) g.add(new THREE.SphereGeometry(0.42, 10, 8).scale(1, 0.7, 1), armour, sx * 0.8, 4.35, 0);
-  g.add(new THREE.SphereGeometry(0.38, 12, 10), skin, 0, 4.85, 0.05);
-  g.add(new THREE.ConeGeometry(0.42, 0.7, 10), trim, 0, 5.35, 0);
-  // one arm on the hip, the other raised with a halberd or holding a stupa aloft
-  g.add(new THREE.CylinderGeometry(0.17, 0.15, 1.3, 8), armour, -0.95, 3.7, 0.15, 0, 0, -0.5);
-  g.add(new THREE.CylinderGeometry(0.17, 0.15, 1.3, 8), armour, 1.0, 4.6, 0.1, 0, 0, weaponUp ? 0.25 : -0.9);
-  if (weaponUp) g.add(new THREE.CylinderGeometry(0.05, 0.05, 5.2, 6), trim, 1.25, 4.2, 0.15);
-  else g.add(new THREE.ConeGeometry(0.3, 0.8, 8), trim, 1.7, 5.4, 0.1);
-  const m = new THREE.Group();
-  g.build(m);
-  m.position.set(x, HALL_Y, z);
-  m.rotation.y = yaw;
-  return m;
+/**
+ * A guardian king on his rock, from a real photograph as a relief (see relief.ts): Kōmokuten
+ * with brush and scroll, Tamonten with the pagoda raised and the halberd. Painted wood, about
+ * 5.5 m, trampling a demon.
+ */
+function guardian(name: string, x: number, z: number, yaw: number, w: number, h: number) {
+  const g = new THREE.Group();
+  const rock = new Batch();
+  rock.add(new THREE.DodecahedronGeometry(1.6, 0).scale(1.35, 0.55, 1), std(0x3a3430, 0.95), 0, 0.55, 0);
+  rock.build(g);
+  const r = relief(name, { w, h, depth: 1.1, glow: 0.08, metalness: 0.05, roughness: 0.8 });
+  r.position.set(0, 0.85, -0.4);
+  g.add(r);
+  g.position.set(x, HALL_Y, z);
+  g.rotation.y = yaw;
+  return g;
 }
 
 export function buildShrine(rng: () => number, mode: string) {
@@ -231,11 +271,7 @@ export function buildShrine(rng: () => number, mode: string) {
 
   // the Buddha
   const slot = new THREE.Group();
-  slot.position.set(BUDDHA.x, SEAT_Y - 0.3, BUDDHA.z);
-  // the photo was taken from far below, so the reconstruction leans back: sit it upright,
-  // and give the lap the depth the single view could not see
-  slot.rotation.x = 0.16;
-  slot.scale.set(1.08, 1, 1.25);
+  slot.position.set(BUDDHA.x, SEAT_Y, BUDDHA.z);
   group.add(slot);
   buildFigure(slot, mode);
 
@@ -248,76 +284,84 @@ export function buildShrine(rng: () => number, mode: string) {
   // its timber back frame, seen walking behind
   b.add(new THREE.CylinderGeometry(haloW * 0.43, haloW * 0.43, 0.3, 28).rotateX(Math.PI / 2), std(0x3a2a1c, 0.9), 0, halo.position.y - 2, BUDDHA.z - 5.2);
 
-  // attendants: gold seated bodhisattvas with crowns and their own halos
-  const attendants: THREE.Group[] = [];
-  for (const sx of [-1, 1]) {
+  // attendants, from real photographs as reliefs (see relief.ts): Nyoirin Kannon to the west
+  // (viewer's left), right hand raised, and Kokūzō Bosatsu to the east, left hand raised; gilt
+  // wood, about 7 m seated, under flaming rayed halos, on lotus thrones hung with drapery
+  for (const [sx, name, w, h] of [[-1, 'nyoirin', 8.45, 7.98], [1, 'kokuzo', 8.2, 7.94]] as const) {
     const a = new THREE.Group();
     a.position.set(sx * 21.5, HALL_Y, -2.5);
     group.add(a);
-    attendants.push(a);
     const pb = new Batch();
-    pb.add(new THREE.CylinderGeometry(2.3, 2.6, 1.4, 8).rotateY(Math.PI / 8), lacquer, 0, 0.7, 0);
-    pb.add(new THREE.CylinderGeometry(2.0, 2.2, 0.9, 16), goldLeaf, 0, 1.85, 0);
-    const halo2 = new THREE.Shape();
-    halo2.moveTo(0, 0);
-    halo2.bezierCurveTo(2.6, 0.3, 2.9, 4.2, 0, 7.6);
-    halo2.bezierCurveTo(-2.9, 4.2, -2.6, 0.3, 0, 0);
-    pb.add(new THREE.ShapeGeometry(halo2, 16), goldLeaf, 0, 2.2, -1.2);
-    pb.add(new THREE.TorusGeometry(1.05, 0.12, 8, 28), goldLeaf, 0, 6.6, -1.05);
+    pb.add(new THREE.CylinderGeometry(3.4, 3.8, 1.6, 8).rotateY(Math.PI / 8), lacquer, 0, 0.8, 0);
     pb.build(a);
-    colliders.push({ x0: sx * 21.5 - 2.7, x1: sx * 21.5 + 2.7, z0: -5.2, z1: 0.2 });
+    const r = relief(name, { w, h, depth: 1.7, glow: 0.15, metalness: 0.45, roughness: 0.45 });
+    r.position.set(0, 1.45, 0.2);
+    a.add(r);
+    colliders.push({ x0: sx * 21.5 - 3.9, x1: sx * 21.5 + 3.9, z0: -6.2, z1: 1.4 });
   }
-  loadStatue('mahayana', 'gilt').then((s) => {
-    for (const [i, a] of attendants.entries()) {
-      const fig = i === 0 ? s : s.clone(true);
-      fig.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = goldLeaf; });
-      const box = new THREE.Box3().setFromObject(fig);
-      const k = 5.0 / (box.max.y - box.min.y);
-      fig.scale.setScalar(k);
-      fig.position.set(0, 2.25 - box.min.y * k, -0.1);
-      if (i === 0) fig.scale.x *= -1; // mirrored hands, as the pair reverse their gestures
-      a.add(fig);
-      // the bodhisattva's crown
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.42, 0.75, 10, 1, true), goldLeaf);
-      crown.position.set(0, 2.25 + 5.0 * 0.93, 0);
-      a.add(crown);
-    }
-  }).catch(() => {});
 
-  // guardian kings in the back corners: Kōmokuten north-west, Tamonten north-east
-  group.add(guardian(-23.5, -21.2, 0.84, 0x2f5a46, true), guardian(23.5, -21.2, -0.84, 0x7a2a22, false));
-  colliders.push({ x0: -25.6, x1: -21.4, z0: -23.2, z1: -19.2 }, { x0: 21.4, x1: 25.6, z0: -23.2, z1: -19.2 });
+  // guardian kings in the back corners, turned toward the Buddha: Kōmokuten north-west, Tamonten north-east
+  group.add(guardian('komokuten', -25, -22.3, 1.0, 4.35, 5.8), guardian('tamonten', 25, -22.3, -1.0, 3.46, 5.73));
+  colliders.push({ x0: -27.4, x1: -22.6, z0: -24.6, z1: -20.0 }, { x0: 22.6, x1: 27.4, z0: -24.6, z1: -20.0 });
 
-  // the altar before the platform, the offering box, and the lotus vases on the platform
-  const clothTex = altarCloth();
-  const cloth = new THREE.MeshStandardMaterial({ map: clothTex, roughness: 0.7 });
-  const aw = ALTAR.x1 - ALTAR.x0, ad = ALTAR.z1 - ALTAR.z0, az = (ALTAR.z0 + ALTAR.z1) / 2;
+  // the altar before the platform, as at Tōdai-ji: a dark table hung all round with orange
+  // brocade, two tall gilt candlesticks and the incense burner on it; before it a low dais
+  // with white-boarded front, red rails at its ends and gilt lanterns on black poles; the
+  // offering box on the floor; the painted lotus arrangements on the platform behind
+  const cloth = new THREE.MeshStandardMaterial({ map: altarCloth(), roughness: 0.75 });
+  const aw = ALTAR.x1 - ALTAR.x0, ad = ALTAR.z1 - ALTAR.z0, az = (ALTAR.z0 + ALTAR.z1) / 2, ah = ALTAR.y - HALL_Y;
   b.box(lacquer, aw + 0.3, 0.12, ad + 0.3, 0, ALTAR.y - 0.06, az);
-  b.box(lacquer, aw, ALTAR.y - HALL_Y - 0.12, ad, 0, (ALTAR.y + HALL_Y - 0.12) / 2, az);
-  const front = new THREE.Mesh(new THREE.PlaneGeometry(aw - 0.2, ALTAR.y - HALL_Y - 0.3), cloth);
-  front.position.set(0, (ALTAR.y + HALL_Y) / 2 - 0.08, ALTAR.z1 + 0.01);
-  group.add(front);
-  // incense burner, candlesticks and gilt lanterns on the altar
-  b.add(new THREE.SphereGeometry(0.42, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI), bronze, 0, ALTAR.y + 0.45, az);
+  b.box(lacquer, aw, ah - 0.12, ad, 0, (ALTAR.y + HALL_Y - 0.12) / 2, az);
+  const hang = new THREE.Mesh(new THREE.PlaneGeometry(aw + 0.2, ah - 0.15), cloth);
+  hang.position.set(0, HALL_Y + (ah - 0.15) / 2, ALTAR.z1 + 0.17);
+  group.add(hang);
   for (const sx of [-1, 1]) {
-    b.add(new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6), bronze, sx * 0.3, ALTAR.y + 0.2, az);
-    b.cyl(goldLeaf, 0.2, 0.06, sx * 1.6, az, ALTAR.y, ALTAR.y + 1.1, 10);
-    b.cyl(std(0xf4efe4, 0.6), 0.05, 0.05, sx * 1.6, az, ALTAR.y + 1.1, ALTAR.y + 1.45, 8);
-    b.add(new THREE.SphereGeometry(0.34, 12, 10), goldLeaf, sx * 3.6, ALTAR.y + 0.65, az);
-    b.cyl(goldLeaf, 0.08, 0.08, sx * 3.6, az, ALTAR.y, ALTAR.y + 0.35, 8);
+    const side = new THREE.Mesh(new THREE.PlaneGeometry(ad + 0.3, ah - 0.15), cloth);
+    side.position.set(sx * (aw / 2 + 0.17), HALL_Y + (ah - 0.15) / 2, az);
+    side.rotation.y = sx * Math.PI / 2;
+    group.add(side);
+  }
+  // the dais before the altar
+  const DZ0 = ALTAR.z1 + 0.2, DZ1 = DZ0 + 0.85, DH = 0.45;
+  const daisMat = new THREE.MeshStandardMaterial({ map: daisFront(), roughness: 0.8 });
+  b.box(lacquer, aw + 1.2, DH, DZ1 - DZ0, 0, HALL_Y + DH / 2, (DZ0 + DZ1) / 2);
+  const dfront = new THREE.Mesh(new THREE.PlaneGeometry(aw + 1.2, DH), daisMat);
+  dfront.position.set(0, HALL_Y + DH / 2, DZ1 + 0.01);
+  group.add(dfront);
+  const red = std(0x9a3a32, 0.7);
+  for (const sx of [-1, 1]) {
+    const xi = sx * 2.9, xo = sx * (aw / 2 + 0.55);
+    b.box(red, Math.abs(xo - xi), 0.1, 0.12, (xi + xo) / 2, HALL_Y + DH + 0.75, DZ1 - 0.1);
+    b.box(red, Math.abs(xo - xi), 0.08, 0.1, (xi + xo) / 2, HALL_Y + DH + 0.42, DZ1 - 0.1);
+    for (const x of [xi, xo]) b.box(red, 0.14, 0.95, 0.14, x, HALL_Y + DH + 0.47, DZ1 - 0.1);
+    // a gilt lantern on a black pole
+    const lx = sx * 2.3, lz = DZ0 + 0.35;
+    b.cyl(lacquer, 0.05, 0.05, lx, lz, HALL_Y + DH, HALL_Y + DH + 1.7, 8);
+    b.add(new THREE.SphereGeometry(0.3, 12, 10).scale(1, 1.15, 1), goldLeaf, lx, HALL_Y + DH + 1.95, lz);
+    b.add(new THREE.ConeGeometry(0.34, 0.2, 6), goldLeaf, lx, HALL_Y + DH + 2.35, lz);
+    // tall gilt candlesticks on the altar
+    b.cyl(goldLeaf, 0.24, 0.06, sx * 1.5, az, ALTAR.y, ALTAR.y + 0.25, 10);
+    b.cyl(goldLeaf, 0.05, 0.04, sx * 1.5, az, ALTAR.y + 0.25, ALTAR.y + 1.75, 8);
+    b.cyl(goldLeaf, 0.08, 0.14, sx * 1.5, az, ALTAR.y + 1.75, ALTAR.y + 1.85, 10);
+    b.cyl(std(0xf4efe4, 0.6), 0.04, 0.04, sx * 1.5, az, ALTAR.y + 1.85, ALTAR.y + 2.1, 8);
     lotusVase(b, sx * 7.4, PLAT_TOP, BUDDHA.z + PLAT_R - 3.6, rng);
   }
+  // the black lacquer table on the dais, with the incense burner
+  for (const [x, z] of [[-0.75, DZ0 + 0.15], [0.75, DZ0 + 0.15], [-0.75, DZ1 - 0.15], [0.75, DZ1 - 0.15]]) b.box(lacquer, 0.09, 0.8, 0.09, x, HALL_Y + DH + 0.4, z);
+  b.box(lacquer, 1.8, 0.07, DZ1 - DZ0 + 0.1, 0, HALL_Y + DH + 0.82, (DZ0 + DZ1) / 2);
+  b.add(new THREE.SphereGeometry(0.3, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI), bronze, 0, HALL_Y + DH + 1.15, (DZ0 + DZ1) / 2);
+  b.add(new THREE.SphereGeometry(0.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), bronze, 0, HALL_Y + DH + 1.15, (DZ0 + DZ1) / 2);
   const flames: THREE.Mesh[] = [];
   const flameMat = new THREE.MeshBasicMaterial({ color: 0xffc46a });
   for (const sx of [-1, 1]) {
     const f = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 8), flameMat);
-    f.position.set(sx * 1.6, ALTAR.y + 1.55, az);
+    f.position.set(sx * 1.5, ALTAR.y + 2.2, az);
     group.add(f);
     flames.push(f);
   }
   const boxMat = new THREE.MeshStandardMaterial({ map: boxTexture(), roughness: 0.7 });
   b.box(boxMat, 3.4, 0.8, 1.1, 0, HALL_Y + 0.4, OFFER_BOX_Z);
-  colliders.push({ x0: ALTAR.x0 - 0.3, x1: ALTAR.x1 + 0.3, z0: BUDDHA.z + PLAT_R, z1: ALTAR.z1 + 0.3 }, { x0: -1.9, x1: 1.9, z0: OFFER_BOX_Z - 0.75, z1: OFFER_BOX_Z + 0.75 });
+  colliders.push({ x0: ALTAR.x0 - 0.9, x1: ALTAR.x1 + 0.9, z0: BUDDHA.z + PLAT_R, z1: DZ1 + 0.1 }, { x0: -1.9, x1: 1.9, z0: OFFER_BOX_Z - 0.75, z1: OFFER_BOX_Z + 0.75 });
 
   // the full-size replica of a throne petal, on a stand by the entrance
   const replica = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.2), cutout(TEX + 'lotus-petal.jpg', { alphaTest: 0.006, color: 0xc8bba0, metalness: 0.5, roughness: 0.45 }));
@@ -347,17 +391,25 @@ export function buildShrine(rng: () => number, mode: string) {
     group.add(p);
     return p;
   });
+  // lamps in the back corners, so the guardian kings read from the circuit
+  const corner = [-1, 1].map((sx) => {
+    const p = new THREE.PointLight(0xffd6a8, 0, 14, 1.5);
+    p.position.set(sx * 21.8, 7.5, -17.5);
+    group.add(p);
+    return p;
+  });
   const candle = new THREE.PointLight(0xffa64d, 0, 8, 1.8);
-  candle.position.set(0, ALTAR.y + 1.6, az + 0.6);
+  candle.position.set(0, ALTAR.y + 2.0, az + 0.9);
   group.add(candle);
 
   return {
     group,
     colliders,
     update(night: number, elapsed: number) {
-      key.intensity = 260 + night * 120;
+      key.intensity = 340 + night * 120;
       haloWash.intensity = 70 + night * 50;
       for (const f of fills) f.intensity = 60 + night * 30;
+      for (const p of corner) p.intensity = 55 + night * 25;
       candle.intensity = 6 + Math.sin(elapsed * 13) * 0.8 + Math.sin(elapsed * 7.3) * 0.6;
       for (const [i, f] of flames.entries()) f.scale.y = 1 + Math.sin(elapsed * 11 + i * 2) * 0.12;
     },

@@ -8,20 +8,23 @@ import { at, Batch, gableRoofGeometry, hipRoofGeometry, instances, std, TEX } fr
 // cloister (kairō), the stone path from the Middle Gate (Chūmon) to the hall steps,
 // the 8th-century gilt-bronze octagonal lantern on the axis, the roofed incense
 // burner (jōkōro), a purification basin, sika deer on the lawns, and Nara's wooded
-// hills beyond. Distances are compressed a little from the real precinct.
+// hills beyond. Distances follow the real precinct (OpenStreetMap): the Middle Gate stands
+// 100 m south of the hall's doors and the cloister runs about 75 m either side of the axis;
+// beyond the gate the stone avenue runs on to the Great South Gate (Nandaimon), and the
+// bell tower stands on its rise to the east.
 
 /** the cloister's inner faces and the gate */
-export const COURT = { x: 48, z0: 11, z1: 86 };
+export const COURT = { x: 72, z0: 11, z1: 121 };
 export const LANTERN = new THREE.Vector3(0, 0, 39);
 export const BURNER_AT = new THREE.Vector3(0, 0.55, 50);
 export const BOUNDS = { x0: -COURT.x + 0.6, x1: COURT.x - 0.6, z0: -24, z1: COURT.z1 - 0.6 };
 /** where the deer may wander: the two lawns */
-const LAWNS = [{ x0: -40, x1: -8, z0: 37, z1: 80 }, { x0: 8, x1: 40, z0: 37, z1: 80 }];
+const LAWNS = [{ x0: -62, x1: -8, z0: 37, z1: 114 }, { x0: 8, x1: 62, z0: 37, z1: 114 }];
 
-const gravelMat = photo(std(0xb9ad96, 1), TEX + 'gravel.jpg', { repeat: [24, 20], mirror: true });
-const lawnMat = photo(std(0x5b7a3e, 1), TEX + 'lawn.jpg', { repeat: [10, 14], mirror: true });
+const gravelMat = photo(std(0xb9ad96, 1), TEX + 'gravel.jpg', { repeat: [36, 28], mirror: true });
+const lawnMat = photo(std(0x5b7a3e, 1), TEX + 'lawn.jpg', { repeat: [16, 22], mirror: true });
 const fieldMat = photo(std(0x5b7a3e, 1), TEX + 'lawn.jpg', { repeat: [80, 80], mirror: true });
-const pavingMat = photo(std(0x9e9c96, 0.95), TEX + 'courtyard-paving.jpg', { repeat: [3, 18], mirror: true, keepColor: true });
+const pavingMat = photo(std(0x9e9c96, 0.95), TEX + 'courtyard-paving.jpg', { repeat: [3, 32], mirror: true, keepColor: true });
 const apronMat = photo(std(0x9e9c96, 0.95), TEX + 'courtyard-paving.jpg', { repeat: [8, 2], mirror: true, keepColor: true });
 const plaster = photo(std(0xe8e2d4, 0.9), TEX + 'plaster-timber.jpg', { repeat: [1, 1], mirror: true });
 const roofTiles = photo(std(0x55585c, 0.8, 0.05), TEX + 'roof-tiles.jpg', { repeat: [1, 1] });
@@ -193,6 +196,49 @@ function chumon(b: Batch, z: number, colliders: Box2[], cam: (Box2 & { y0?: numb
   return instances(unit, darkTimber, bm, false);
 }
 
+/**
+ * The Great South Gate (Nandaimon, 1199): five bays, two storeys, about 29 × 11 m and 25 m
+ * tall, in bare weathered Daibutsuyō timber with tiers of bracket arms thrust through the
+ * posts. Seen from the courtyard only as a far roofline over the Middle Gate.
+ */
+function nandaimon(b: Batch, z: number) {
+  const hw = 14.4, hd = 5.4;
+  const weathered = std(0x5b4d40, 0.95);
+  for (let i = 0; i <= 5; i++) for (const sz of [-1, 0, 1]) {
+    b.add(new THREE.CylinderGeometry(0.5, 0.52, 19, 12), weathered, -hw + i * (2 * hw / 5), 0.6 + 9.5, z + sz * hd);
+  }
+  b.box(stoneMat, hw * 2 + 4, 0.6, hd * 2 + 4, 0, 0.3, z);
+  // the through-post bracket tiers (sashi-hijiki), six deep under each roof
+  for (const y of [7.6, 9.0, 10.4, 17.0, 18.4, 19.8]) {
+    b.box(weathered, hw * 2 + 2.2, 0.55, hd * 2 + 2.2, 0, y, z);
+    b.box(weathered, hw * 2 + 4.4, 0.45, 0.6, 0, y + 0.5, z + hd + 2.0).box(weathered, hw * 2 + 4.4, 0.45, 0.6, 0, y + 0.5, z - hd - 2.0);
+  }
+  b.add(hipRoofGeometry(hw + 4.2, hd + 4.2, hw - 3, hd - 3, 11.4, 14.2, 0, 0.6, 1.3, 4), roofTiles, 0, 0, z);
+  b.add(hipRoofGeometry(hw + 4.2, hd + 4.2, hw - 3, hd - 3, 11.4, 14.2, 0, 0.6, 1.3, 4), lining, 0, -0.2, z);
+  b.add(hipRoofGeometry(hw + 4.4, hd + 4.4, hw - 7, 0, 20.6, 25.6, 0, 0.9, 1.4, 4), roofTiles, 0, 0, z);
+  b.add(hipRoofGeometry(hw + 4.4, hd + 4.4, hw - 7, 0, 20.6, 25.6, 0, 0.9, 1.4, 4), lining, 0, -0.2, z);
+  b.box(roofTiles, (hw - 7) * 2 + 1, 0.8, 1.0, 0, 25.8, z);
+}
+
+/** the bell tower (shōrō, 1207–10) on its rise east of the hall: four great posts, a heavy hipped
+ * roof, and the 26-tonne bell of 752 hanging in the open with its log striker */
+function shoro(b: Batch, x: number, y: number, z: number) {
+  const hw = 4.2, timber = std(0x5a4637, 0.9);
+  b.box(stoneMat, hw * 2 + 3, 0.8, hw * 2 + 3, x, y + 0.4, z);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.add(new THREE.CylinderGeometry(0.42, 0.46, 8.5, 12), timber, x + sx * hw, y + 0.8 + 4.25, z + sz * hw);
+  for (const yy of [6.6, 8.6, 9.6]) b.box(timber, hw * 2 + 1.6, 0.5, hw * 2 + 1.6, x, y + yy, z);
+  b.add(hipRoofGeometry(hw + 4.4, hw + 4.4, 2.2, 0, y + 10.2, y + 15.5, 0, 0.8, 1.4, 4), roofTiles, x, 0, z);
+  b.add(hipRoofGeometry(hw + 4.4, hw + 4.4, 2.2, 0, y + 10.2, y + 15.5, 0, 0.8, 1.4, 4), lining, x, -0.2, z);
+  const bell = new THREE.LatheGeometry([
+    new THREE.Vector2(0.01, 3.86), new THREE.Vector2(1.05, 3.8), new THREE.Vector2(1.2, 3.4), new THREE.Vector2(1.22, 1.2),
+    new THREE.Vector2(1.36, 0.1), new THREE.Vector2(1.3, 0), new THREE.Vector2(1.1, 0.05),
+  ], 20);
+  b.add(bell, std(0x3a3a32, 0.55, 0.6), x, y + 3.0, z);
+  b.add(new THREE.CylinderGeometry(0.3, 0.3, 4.48, 10).rotateZ(Math.PI / 2), timber, x - 3.6, y + 3.6, z);
+  // the knoll it stands on
+  b.add(new THREE.SphereGeometry(1, 18, 10), std(0x4f6b3a, 1), x, y - 30, z, 0, 0, 0, 34, 30, 34);
+}
+
 /** sika deer: a body that walks, a head that dips to graze */
 function makeDeer(coat: THREE.Material, pale: THREE.Material, dark: THREE.Material) {
   const deer = new THREE.Group();
@@ -273,6 +319,12 @@ export function buildGrounds(rng: () => number) {
   corridor(b, -cw + 3.6, COURT.z0 - 3.6, -PODIUM.x - 0.3, COURT.z0 - 3.6, colliders, cameraSolids);
   corridor(b, PODIUM.x + 0.3, COURT.z0 - 3.6, cw - 3.6, COURT.z0 - 3.6, colliders, cameraSolids);
   group.add(chumon(b, gateZ, colliders, cameraSolids));
+
+  // beyond the Middle Gate: the stone avenue south to the Great South Gate, and the bell tower
+  const avenue = ground(pavingMat, 10, 230, 0, gateZ + 9 + 115, 0.02);
+  group.add(avenue);
+  nandaimon(b, gateZ + 230);
+  shoro(b, 190, 4, -5);
 
   // paper lanterns along the path for the lantern-offering night (Mantō-e)
   const andonLit = new THREE.MeshStandardMaterial({ color: 0xbdb39f, emissive: 0xffb86a, emissiveIntensity: 0.05, roughness: 0.8 });

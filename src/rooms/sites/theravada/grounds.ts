@@ -1,8 +1,9 @@
 import * as THREE from 'three';
+import { SplatMesh } from '@sparkjsdev/spark';
 import { canopy, limb, trunk, type Cluster } from '../../../kit/foliage';
 import type { Box2 } from '../../types';
 import { BURNER_AT, CLOISTER, OUTER, PRANG, STEPS } from './plan';
-import { boxAt, canvasTex, finialGeometry, merged, quad, seatedBuddhaGeometry, tex } from './util';
+import { boxAt, canvasTex, finialGeometry, merged, quad, tex } from './util';
 
 // Around the viharn: open lawns and a pale paved forecourt on the west, white lidded
 // urns and stone lions at the porch, the incense urn, a few shade trees; behind the
@@ -48,26 +49,54 @@ function lionGeometry() {
   return merged(parts, new THREE.MeshStandardMaterial()).geometry;
 }
 
-/** the prang: stepped redented base, a dark stucco tower body, a gilded corncob top */
+/** whitewashed stucco carved all over with rows of pointed antefixes and little pilasters */
+function reliefTexture() {
+  return canvasTex(512, 512, (c) => {
+    c.fillStyle = '#e6e1d6';
+    c.fillRect(0, 0, 512, 512);
+    for (let row = 0; row < 8; row++) {
+      const y = row * 64;
+      // a moulding band, then a row of flame-pointed antefixes with a shadowed niche in each
+      c.fillStyle = '#c9c2b4'; c.fillRect(0, y + 54, 512, 4);
+      c.fillStyle = '#f4f1ea'; c.fillRect(0, y + 58, 512, 6);
+      for (let i = 0; i < 8; i++) {
+        const x = i * 64 + 32 + (row % 2) * 32;
+        c.fillStyle = '#b9b1a2';
+        c.beginPath(); c.moveTo(x - 20, y + 54); c.quadraticCurveTo(x - 20, y + 18, x, y + 4); c.quadraticCurveTo(x + 20, y + 18, x + 20, y + 54); c.closePath(); c.fill();
+        c.fillStyle = '#efebe3';
+        c.beginPath(); c.moveTo(x - 15, y + 54); c.quadraticCurveTo(x - 15, y + 22, x, y + 11); c.quadraticCurveTo(x + 15, y + 22, x + 15, y + 54); c.closePath(); c.fill();
+        c.fillStyle = '#8f8676';
+        c.beginPath(); c.ellipse(x, y + 40, 5, 9, 0, 0, Math.PI * 2); c.fill();
+      }
+    }
+  });
+}
+
+/** the prang: stepped redented base, a whitewashed tower body carved with antefixes and
+ * gilded niches, the lower corncob tiers white and the upper ones gilded in vertical ribs */
 function buildPrang() {
   const g = new THREE.Group();
-  const stucco = tex('wall', { color: 0x55524d, roughness: 0.95 }, [3, 3]);
-  const darkStucco = new THREE.MeshStandardMaterial({ color: 0x4e4b46, roughness: 0.95 });
-  // the gilded corncob: rows of tall rounded gold tablets with dark gaps between
+  const relief = reliefTexture();
+  relief.repeat.set(3, 3);
+  const stucco = new THREE.MeshStandardMaterial({ map: relief, roughness: 0.92, color: 0xf2efe8 });
+  const darkStucco = new THREE.MeshStandardMaterial({ map: relief, roughness: 0.92, color: 0xe2ddd2 });
+  // the gilded corncob: rows of tall rounded gold ribs with pale gaps between
   const petals = canvasTex(512, 128, (c) => {
-    c.fillStyle = '#2e2b27';
+    c.fillStyle = '#d9d2c4';
     c.fillRect(0, 0, 512, 128);
     for (let i = 0; i < 16; i++) {
-      const x = i * 32 + 3;
+      const x = i * 32 + 4;
       c.fillStyle = '#e0b04a';
       c.beginPath();
-      c.moveTo(x, 128); c.lineTo(x, 34); c.quadraticCurveTo(x + 13, -4, x + 26, 34); c.lineTo(x + 26, 128); c.closePath(); c.fill();
-      c.fillStyle = 'rgba(120,80,20,.5)';
-      c.fillRect(x + 18, 40, 6, 88);
+      c.moveTo(x, 128); c.lineTo(x, 30); c.quadraticCurveTo(x + 12, -4, x + 24, 30); c.lineTo(x + 24, 128); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(120,80,20,.45)';
+      c.fillRect(x + 17, 36, 5, 92);
+      c.fillStyle = 'rgba(255,240,190,.5)';
+      c.fillRect(x + 4, 36, 4, 92);
     }
   });
   petals.repeat.set(2, 1);
-  const gilt = new THREE.MeshStandardMaterial({ map: petals, metalness: 0.75, roughness: 0.38, emissive: 0x2a1a04, flatShading: true });
+  const gilt = new THREE.MeshStandardMaterial({ map: petals, metalness: 0.75, roughness: 0.34, emissive: 0x2a1a04, flatShading: true });
   const gold = new THREE.MeshStandardMaterial({ color: 0xd9a83a, metalness: 1, roughness: 0.3 });
   const { x, z, base } = PRANG;
   const redented = (w: number, h: number, y: number, inset = 0.18) => [
@@ -99,7 +128,8 @@ function buildPrang() {
   for (const [dx, dz, w, d] of [[-1, 0, 0.2, 2.0], [1, 0, 0.2, 2.0], [0, -1, 2.0, 0.2], [0, 1, 2.0, 0.2]] as const) {
     niche.push(boxAt(w, 3.2, d, x + (dx * bodyW) / 2, y + 2.2, z + (dz * bodyW) / 2));
   }
-  g.add(merged(niche, new THREE.MeshStandardMaterial({ color: 0x1c1a18, roughness: 1 })));
+  // each niche gilded and crowded with small images in relief
+  g.add(merged(niche, tex('prang-gilt', { metalness: 0.8, roughness: 0.35, color: 0xf0d8a0 }, [1, 1.6]), false));
   // pediments over the niches
   const ped = finialGeometry(2.4, 0.3);
   const pedGeos: THREE.BufferGeometry[] = [];
@@ -133,7 +163,7 @@ function buildPrang() {
       new THREE.Vector2(r * 0.9, 0), new THREE.Vector2(r, h * 0.12), new THREE.Vector2(r * 1.02, h * 0.45),
       new THREE.Vector2(r * 0.97, h * 0.72), new THREE.Vector2(r2 * 0.92, h * 0.86), new THREE.Vector2(r2 * 0.9, h),
     ], 12).rotateY(Math.PI / 12).translate(x, y, z);
-    (i < 3 ? tierGeosDark : tierGeosGilt).push(ring);
+    (i < 4 ? tierGeosDark : tierGeosGilt).push(ring);
     // antefix leaves at the four corners and the four faces of each tier
     for (let k = 0; k < 8; k++) {
       const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
@@ -311,10 +341,16 @@ export function buildGrounds(rng: () => number) {
   add(merged(borderGeos, border));
   add(merged(beamGeos, red, false));
   add(merged(benchGeos, red, false));
-  const sb = seatedBuddhaGeometry();
-  const rows = new THREE.InstancedMesh(sb, goldM, buddhaSpots.length);
-  buddhaSpots.forEach((m, i) => rows.setMatrixAt(i, m));
-  add(rows);
+  // the seated images: one light splat of a gilded Sukhothai-style image (the same Commons
+  // photograph as the hall's aisle images), shared by every place on the benches
+  const rowImage = new SplatMesh({ url: '/models/statues/theravada-small-lo.spz' });
+  rowImage.initialized.then(() => {
+    buddhaSpots.forEach((m, i) => {
+      const b = i === 0 ? rowImage : new SplatMesh({ packedSplats: rowImage.packedSplats });
+      m.decompose(b.position, b.quaternion, b.scale);
+      add(b);
+    });
+  }).catch(() => {});
   // the gates: a little gilded gable over each opening
   const gateGeos: THREE.BufferGeometry[] = [];
   const gateFin = finialGeometry(1.2, 0.12);

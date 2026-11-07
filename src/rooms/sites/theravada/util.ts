@@ -111,22 +111,3 @@ export function finialGeometry(height: number, depth = 0.08) {
   g.translate(0, 0, -depth / 2);
   return g;
 }
-
-/** a small seated gilded Buddha (about 1.25 m with its base), facing +z, for rows of images */
-export function seatedBuddhaGeometry() {
-  const parts: THREE.BufferGeometry[] = [];
-  parts.push(new THREE.CylinderGeometry(0.46, 0.5, 0.2, 16).translate(0, 0.1, 0)); // lotus base
-  parts.push(new THREE.SphereGeometry(0.5, 16, 10).scale(0.92, 0.3, 0.62).translate(0, 0.3, 0.06)); // crossed legs
-  parts.push(new THREE.SphereGeometry(0.3, 16, 12).scale(0.82, 1.15, 0.6).translate(0, 0.62, -0.02)); // torso
-  parts.push(new THREE.SphereGeometry(0.16, 12, 8).scale(1.6, 0.7, 0.9).translate(0, 0.86, -0.02)); // shoulders
-  parts.push(new THREE.CylinderGeometry(0.06, 0.07, 0.12, 10).translate(0, 0.98, -0.01)); // neck
-  parts.push(new THREE.SphereGeometry(0.12, 14, 10).scale(1, 1.18, 1).translate(0, 1.1, 0)); // head
-  parts.push(new THREE.SphereGeometry(0.075, 10, 8).translate(0, 1.22, -0.01)); // ushnisha
-  parts.push(new THREE.ConeGeometry(0.04, 0.2, 8).translate(0, 1.38, -0.01)); // flame finial
-  // the right arm reaching down over the knee, the left hand in the lap
-  parts.push(new THREE.CylinderGeometry(0.045, 0.055, 0.42, 8).rotateX(0.5).rotateZ(0.12).translate(-0.24, 0.6, 0.1));
-  parts.push(new THREE.CylinderGeometry(0.04, 0.05, 0.26, 8).rotateZ(1.3).translate(0.08, 0.44, 0.2));
-  const norm = parts.map((g) => (g.index ? g.toNonIndexed() : g));
-  for (const g of norm) for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
-  return mergeGeometries(norm, false);
-}

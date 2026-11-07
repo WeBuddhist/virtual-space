@@ -4,9 +4,10 @@ import { buildAltar } from './altar';
 import { buildGrounds } from './grounds';
 import { buildHall } from './hall';
 import {
-  BENCH, BOUNDS, BURNER_AT, FY, HALL, KORA_X, KORA_Z0, KORA_Z1, PORCH, STEPS, TABLE,
+  BENCH, BENCH_XS, BOUNDS, BURNER_AT, FY, HALL, KORA_X, KORA_Z0, KORA_Z1, PORCH, STEPS, TABLE,
 } from './layout';
 import { makeMats } from './mats';
+import { floorReflection } from './reflection';
 import { buildSeating } from './seating';
 
 // The Golden Temple (Padmasambhava Buddhist Vihara), Namdroling Monastery, Bylakuppe
@@ -20,6 +21,9 @@ export function tibetanSite({ scene, temple, rng }: SiteContext): Site {
   const grounds = buildGrounds(m, temple.hall.signboard, rng);
   scene.add(hall.group, altar.group, grounds.group);
   const seating = buildSeating(scene, m);
+  // the polished aisle mirrors the gold
+  const mirror = floorReflection(altar.group, -2.0, 2.0, 0.4, 16.1);
+  scene.add(mirror.mesh);
 
   // night: a warm glow from the doorway and over the hall from the chandeliers
   const doorGlow = new THREE.PointLight(0xffb870, 0, 14, 1.6);
@@ -43,7 +47,7 @@ export function tibetanSite({ scene, temple, rng }: SiteContext): Site {
   const groundHeight = (x: number, z: number) => {
     if (inHall(x, z)) {
       const bx = Math.abs(x);
-      const onBench = z > BENCH.z0 && z < BENCH.z1 && (Math.abs(bx - BENCH.x) < BENCH.w / 2 || Math.abs(bx - BENCH.x - 1.95) < BENCH.w / 2);
+      const onBench = z > BENCH.z0 && z < BENCH.z1 && BENCH_XS.some((x) => Math.abs(bx - x) < BENCH.w / 2);
       return FY + (onBench ? BENCH.h : 0);
     }
     if (x > PORCH.x0 && x < PORCH.x1 && z >= PORCH.z0 && z <= PORCH.z1) return FY;
@@ -77,7 +81,7 @@ export function tibetanSite({ scene, temple, rng }: SiteContext): Site {
   return {
     floor: [...hall.floor, ...grounds.floor],
     cushions: seating.cushions,
-    colliders: [...hall.colliders, ...altar.colliders, ...grounds.colliders],
+    colliders: [...hall.colliders, ...altar.colliders, ...grounds.colliders, ...seating.colliders],
     burner: { object: grounds.burner, position: BURNER_AT.clone(), stand: BURNER_AT.clone().add(new THREE.Vector3(0, 0, -1.6)) },
     spawn,
     spawnYaw,
@@ -95,6 +99,7 @@ export function tibetanSite({ scene, temple, rng }: SiteContext): Site {
     },
     update(_dt, night, elapsed) {
       altar.update(night, elapsed);
+      mirror.setStrength(0.6 - night * 0.15);
       grounds.update(night, elapsed);
       doorGlow.intensity = night * 6;
       hallGlow.intensity = night * 5;

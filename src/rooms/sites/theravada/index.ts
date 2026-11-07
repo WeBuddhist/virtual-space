@@ -3,6 +3,7 @@ import type { Cushion, OfferingSpot, Site, SiteContext } from '../../types';
 import { buildGrounds } from './grounds';
 import { BOUNDS, BURNER_AT, CLOISTER, FLOOR, IMAGE_FACE, OUTER, PORCH, PRANG, RAIL_X, STEPS, TABLE } from './plan';
 import { buildShrine } from './shrine';
+import { buildSurrounds } from './surrounds';
 import { buildViharn } from './viharn';
 
 // Wat Phra Si Rattana Mahathat ("Wat Yai"), Phitsanulok: the viharn of the Phra Buddha
@@ -15,7 +16,8 @@ export function theravadaSite({ scene, rng }: SiteContext): Site {
   const viharn = buildViharn();
   const shrine = buildShrine(rng);
   const grounds = buildGrounds(rng);
-  scene.add(viharn.group, shrine.group, grounds.group);
+  const surrounds = buildSurrounds(rng);
+  scene.add(viharn.group, shrine.group, grounds.group, surrounds.group);
 
   // eighteen kneeling mats on the red carpet, three rows of six, facing the image
   const cushions: Cushion[] = [];
@@ -65,8 +67,8 @@ export function theravadaSite({ scene, rng }: SiteContext): Site {
   const floods: THREE.SpotLight[] = [];
   for (const [from, to, power] of [
     [new THREE.Vector3(-24, 0.6, 0), new THREE.Vector3(-1, 12.5, 0), 900],
-    [new THREE.Vector3(PRANG.x - 14, 0.6, -9), new THREE.Vector3(PRANG.x, 20, PRANG.z), 1600],
-    [new THREE.Vector3(PRANG.x + 12, 0.6, 9), new THREE.Vector3(PRANG.x, 20, PRANG.z), 1200],
+    [new THREE.Vector3(PRANG.x - 14, 0.6, -9), new THREE.Vector3(PRANG.x, 20, PRANG.z), 520],
+    [new THREE.Vector3(PRANG.x + 12, 0.6, 9), new THREE.Vector3(PRANG.x, 20, PRANG.z), 400],
   ] as const) {
     const f = new THREE.SpotLight(0xffd6a0, 0, 60, 0.32, 0.7, 1.5);
     f.position.copy(from);
@@ -80,16 +82,16 @@ export function theravadaSite({ scene, rng }: SiteContext): Site {
   scene.add(doorGlow);
 
   return {
-    floor: [...viharn.floor, ...grounds.floor],
+    floor: [...viharn.floor, ...grounds.floor, ...surrounds.floor],
     cushions,
-    colliders: [...viharn.colliders, ...shrine.colliders, ...grounds.colliders],
+    colliders: [...viharn.colliders, ...shrine.colliders, ...grounds.colliders, ...surrounds.colliders],
     burner: { object: grounds.burner, position: BURNER_AT.clone(), stand: BURNER_AT.clone().add(new THREE.Vector3(-1.5, 0, -0.4)) },
-    spawn: new THREE.Vector3(-17, 0, 0),
+    spawn: new THREE.Vector3(-26, 0, 0),
     spawnYaw: EAST,
     bounds: BOUNDS,
     groundHeight,
-    occluders: [...viharn.occluders, ...grounds.occluders],
-    cameraSolids: [...viharn.cameraSolids, ...grounds.cameraSolids],
+    occluders: [...viharn.occluders, ...grounds.occluders, ...surrounds.occluders],
+    cameraSolids: [...viharn.cameraSolids, ...grounds.cameraSolids, ...surrounds.cameraSolids],
     shrines,
     kora: {
       path,
@@ -101,6 +103,7 @@ export function theravadaSite({ scene, rng }: SiteContext): Site {
       viharn.update(night);
       shrine.update(elapsed, night);
       grounds.update(elapsed);
+      surrounds.update(elapsed, night);
       doorGlow.intensity = night * 5;
       for (const f of floods) f.intensity = night * f.userData.power;
     },

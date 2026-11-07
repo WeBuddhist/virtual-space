@@ -113,7 +113,7 @@ export function buildGrounds(m: Mats, signText: string, rng: () => number) {
   // Araucaria (Cook pines): tall narrow columns of tiered, drooping branch whorls
   const pineMat = new THREE.MeshStandardMaterial({ color: 0x2f4f2a, roughness: 0.95 });
   const bark = new THREE.MeshStandardMaterial({ color: 0x5a4636, roughness: 1 });
-  const pines: [number, number, number][] = [[-9.5, -13.5, 15], [9.5, -13.5, 15.5], [-15.5, -22, 13], [15.5, -21, 14], [-16, 18, 14], [16.5, 20, 15], [-24, 2, 13], [25, 10, 14]];
+  const pines: [number, number, number][] = [[-9.5, -13.5, 15], [9.5, -13.5, 15.5], [-15.5, -22, 13], [15.5, -21, 14], [-16, 18, 14], [16.5, 20, 15], [-31, 2, 13], [25, 11, 14]];
   for (const [x, z, h] of pines) {
     b.add(new THREE.CylinderGeometry(0.12, 0.3, h, 8), bark, x, h / 2, z, 0, 0, 0, true);
     const tiers = Math.round(h / 0.9);
@@ -224,8 +224,8 @@ export function buildGrounds(m: Mats, signText: string, rng: () => number) {
     [new THREE.Vector3(4.4, 6.2, GZ), new THREE.Vector3(9.5, 9, -13.5)],
     [new THREE.Vector3(-9.5, 8, -13.5), new THREE.Vector3(-15.5, 7.5, -22)],
     [new THREE.Vector3(9.5, 8, -13.5), new THREE.Vector3(15.5, 7.5, -21)],
-    [new THREE.Vector3(-9.5, 10, -13.5), new THREE.Vector3(-0.1, 15.5, -0.6)],
-    [new THREE.Vector3(9.5, 10, -13.5), new THREE.Vector3(0.1, 15.5, -0.6)],
+    [new THREE.Vector3(-9.5, 10, -13.5), new THREE.Vector3(-0.1, 13.6, -0.7)],
+    [new THREE.Vector3(9.5, 10, -13.5), new THREE.Vector3(0.1, 13.6, -0.7)],
   ];
   const flagGeo = new THREE.PlaneGeometry(0.34, 0.42);
   flagGeo.translate(0, -0.21, 0);
