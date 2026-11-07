@@ -60,6 +60,11 @@ export interface Site {
   spawn: THREE.Vector3;
   /** world yaw the visitor faces on arrival (avatar forward is +z) */
   spawnYaw: number;
+  /**
+   * Orbit-camera pitch on arrival. The default (0.32) looks down at the avatar; a negative
+   * value lowers the camera and tilts the view up, so a tall temple is seen whole.
+   */
+  spawnPitch?: number;
   bounds: Box2;
   groundHeight(x: number, z: number): number;
   /** solid buildings that hide name tags behind them */

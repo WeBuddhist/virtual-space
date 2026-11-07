@@ -127,11 +127,11 @@ export function buildShrine(rng: () => number) {
 
   // ---- the image ----------------------------------------------------------------
   // The Phra Buddha Chinnarat is a Gaussian splat made from one frontal Commons photograph
-  // (2013_Phra_Buddha_Chinnarat_01.jpg, CC BY-SA 3.0): cut out of its lacquer wall by hand,
-  // given depth by a monocular depth model (Depth Anything V2, run locally), then splatted
-  // surface-and-sides so it keeps its volume from the aisles (reference/theravada/scripts:
-  // mask2.py, depth.py, depth_splat.py; then scripts/statues/spz.ts). It carries its own
-  // flame-edged naga aureole. The photo relief (same photograph over hand-placed volumes)
+  // (2013_Phra_Buddha_Chinnarat_01.jpg, CC BY-SA 3.0): cut out of its lacquer wall by hand
+  // (reference/theravada/scripts/mask2.py), reconstructed in 3D by TRELLIS on Hugging Face,
+  // then cleaned and stood upright (scripts/statues/splat_clean.py --tilt 180 --height 4.96,
+  // its back moved to the wall) and compressed (spz.ts). It is whole from the aisles and
+  // carries its own flame-edged naga aureole. The photo relief (same photograph over hand-placed volumes)
   // loads behind the veil and stands in until the splat has decoded; the baked sculpt with a
   // drawn aureole is the last fallback.
   const slot = new THREE.Group();

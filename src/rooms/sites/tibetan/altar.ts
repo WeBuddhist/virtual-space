@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SplatMesh } from '@sparkjsdev/spark';
 import { loadStatue } from '../../../kit/statue';
 import type { Box2 } from '../../types';
 import {
@@ -18,11 +19,12 @@ import { Batch, tiledPlane } from './util';
 /**
  * The three images are built from real photographs (Wikimedia Commons), not sculpted:
  *
- * Shakyamuni: a TRELLIS mesh (trellis-community/TRELLIS on Hugging Face) made from "Statue in
- * 2011 detail, Namrodoling Monastery (Golden Temple) Bylakuppe 6746 (cropped).JPG" (Rameshng,
- * CC BY-SA 3.0), re-textured by projecting that photograph at full resolution onto the front of
- * the mesh, so the face, the earth-touching hand and the bowl are the real ones; the sides and
- * back keep the model's own shading recoloured to the photo's gilt and lapis.
+ * Shakyamuni: a Gaussian splat (tibetan-shakyamuni.spz) from TRELLIS (trellis-community/TRELLIS
+ * on Hugging Face), made from "Statue in 2011 detail, Namrodoling Monastery (Golden Temple)
+ * Bylakuppe 6746 (cropped).JPG" (Rameshng, CC BY-SA 3.0), cut out by hand; cleaned and stood
+ * upright by scripts/statues/splat_clean.py. It is whole from every side: face, lapis curls,
+ * earth-touching hand and alms bowl. Behind the veil, and if the splat fails, the earlier
+ * TRELLIS mesh stands in, re-textured by projecting that photograph onto its front.
  *
  * Guru Rinpoche and Amitayus: photo reliefs. Each figure is cut from "Close up of Three Statues -
  * Namdroling Monastry, Bylekuppe.jpg" (Bikashrd, CC BY-SA 4.0) with the high-resolution close-ups
@@ -300,7 +302,19 @@ export function buildAltar(m: Mats) {
     });
     toranaSlot.add(t);
   }).catch(() => {});
+  // the Gaussian splat (TRELLIS, same photograph; splat_clean.py, spz.ts) replaces the mesh
+  // once it has decoded; the mesh stands in behind the veil and if the splat fails
+  let splatReady = false;
+  let meshStandIn: THREE.Object3D | null = null;
+  const splat = new SplatMesh({ url: `/models/statues/${SHAKYAMUNI}.spz` });
+  splat.initialized.then(() => {
+    splatReady = true;
+    if (meshStandIn) buddhaSlot.remove(meshStandIn);
+    buddhaSlot.add(splat);
+  }).catch(() => {});
   loadStatue(SHAKYAMUNI, 'gilt').then((s) => {
+    if (splatReady) return;
+    meshStandIn = s;
     s.scale.setScalar(BUDDHA_SCALE);
     photoGilt(s).traverse((o) => {
       const mesh = o as THREE.Mesh;
@@ -320,6 +334,7 @@ export function buildAltar(m: Mats) {
     });
     buddhaSlot.add(s);
   }).catch(() => {
+    if (splatReady) return;
     loadStatue('tibetan', 'tibetan-painted').then((s) => {
       s.scale.setScalar(BUDDHA_H / 1.0);
       buddhaSlot.add(s);

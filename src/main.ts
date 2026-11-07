@@ -127,6 +127,7 @@ const player = new Player(me, camera, world, renderer.domElement, {
 });
 player.yaw = world.site.spawnYaw;
 player.camYaw = player.yaw + Math.PI;
+if (world.site.spawnPitch !== undefined) player.camPitch = world.site.spawnPitch;
 player.snapCamera();
 player.onEyes = (on) => {
   $('btn-eyes').setAttribute('aria-pressed', String(on));

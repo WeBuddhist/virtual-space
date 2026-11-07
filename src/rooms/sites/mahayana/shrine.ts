@@ -24,10 +24,6 @@ const PLAT_R = 13, PLAT_TOP = HALL_Y + 2.2;
 const SEAT_Y = PLAT_TOP + 2.7;
 /** seated figure height (lotus top to the crown of the head) */
 const FIGURE_H = 15.6;
-/** splat units to metres (the splat is 1.08 units from the front of the lap to the crown) */
-const SPLAT_K = FIGURE_H / 1.081;
-/** how far below y = 0 the splat's lap reaches, in splat units */
-const SPLAT_BASE = 0.065;
 /** where seated visitors and the camera look: the face */
 export const FACE = new THREE.Vector3(0, SEAT_Y + FIGURE_H - 3.0, BUDDHA.z);
 /** the altar in front of the platform: its top is the offering ledge */
@@ -41,12 +37,13 @@ const railStone = std(0x857f73, 0.92);
 const lacquer = std(0x231611, 0.45, 0.05);
 
 /**
- * The figure. A TRELLIS image-to-3D reconstruction from one real photograph (Wikimedia Commons,
- * "20190121 Tōdai-ji Great Buddha-2.jpg", CC0) gave the shape; because that photo was shot from
- * far below, the splat (mahayana.spz) was then warped onto, and recoloured from, a second, more
- * level photograph that shows the whole figure down to the knees ("Great Buddha at Todaiji,
- * Nara.jpg", CC BY-SA 4.0) by reference/mahayana/retex/retex.py. The TRELLIS mesh
- * (mahayana-trellis.glb) stands in until the splat decodes. ?statue=mesh keeps the mesh.
+ * The figure: a Gaussian splat (mahayana.spz) from TRELLIS on Hugging Face, made from a level
+ * photograph of the whole figure ("Great Buddha at Todaiji, Nara.jpg", Manishprabhune, CC BY-SA
+ * 4.0). The bronze was cut from its gilt aureole by depth (Depth Anything V2, run locally); the
+ * lotus vases, candles and altar hide the lap in every photograph, so the lap was given a plain
+ * robed form before reconstruction (reference/mahayana/r3/cutout.py). The older TRELLIS mesh
+ * (mahayana-trellis.glb, from "20190121 Tōdai-ji Great Buddha-2.jpg", CC0) stands in until the
+ * splat decodes. ?statue=mesh keeps the mesh.
  */
 function buildFigure(slot: THREE.Group, mode: string) {
   const fit = (o: THREE.Object3D) => {
@@ -81,10 +78,7 @@ function buildFigure(slot: THREE.Group, mode: string) {
   }).catch((e) => console.warn('mahayana statue mesh', e));
   if (mode === 'mesh') return;
   const splat = new SplatMesh({ url: '/models/statues/mahayana.spz' });
-  // the warped splat stands 1 unit from the front of the lap (y = -SPLAT_BASE) to the crown
-  splat.scale.set(SPLAT_K, SPLAT_K, SPLAT_K * 1.15);
-  splat.position.y = SPLAT_BASE * SPLAT_K;
-  splat.rotation.x = 0.06;
+  // baked in metres by splat_clean.py: the base of the lap at y = 0, the crown at FIGURE_H, facing +z
   splat.initialized.then(() => {
     splatIn = true;
     console.info('mahayana: statue splat ready');

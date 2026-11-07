@@ -85,6 +85,8 @@ export function tibetanSite({ scene, temple, rng }: SiteContext): Site {
     burner: { object: grounds.burner, position: BURNER_AT.clone(), stand: BURNER_AT.clone().add(new THREE.Vector3(0, 0, -1.6)) },
     spawn,
     spawnYaw,
+    // look up at the hall and its Dharma-wheel tower from the gate
+    spawnPitch: -0.3,
     bounds: BOUNDS,
     groundHeight,
     occluders: [hall.group],

@@ -88,6 +88,8 @@ export function theravadaSite({ scene, rng }: SiteContext): Site {
     burner: { object: grounds.burner, position: BURNER_AT.clone(), stand: BURNER_AT.clone().add(new THREE.Vector3(-1.5, 0, -0.4)) },
     spawn: new THREE.Vector3(-26, 0, 0),
     spawnYaw: EAST,
+    // the viharn's stacked gables, framed from the forecourt
+    spawnPitch: -0.2,
     bounds: BOUNDS,
     groundHeight,
     occluders: [...viharn.occluders, ...grounds.occluders, ...surrounds.occluders],

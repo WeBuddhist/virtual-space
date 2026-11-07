@@ -68,6 +68,8 @@ export function mahayanaSite({ scene, rng }: SiteContext): Site {
     burner: { object: grounds.burner, position: BURNER_AT.clone(), stand: BURNER_AT.clone().setY(0).add(new THREE.Vector3(0, 0, 2.4)) },
     spawn,
     spawnYaw,
+    // the Daibutsuden is tall: tilt up to its ridge and golden shibi
+    spawnPitch: -0.4,
     bounds: BOUNDS,
     groundHeight(x, z) {
       if (Math.abs(x) <= PODIUM.x && z >= PODIUM.z0 && z <= PODIUM.z1) return HALL_Y;

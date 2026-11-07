@@ -28,13 +28,15 @@ To rebuild the clips, download the `.glb` files listed in `scripts/mocap/build.t
   the fallback if the splat cannot load.
 
 The images in the other three rooms are made from photographs on Wikimedia Commons: an
-image-to-3D reconstruction (TRELLIS on Hugging Face) or a monocular depth estimate (Depth
-Anything V2, run locally), cut out, cleaned and coloured from the photo. Each model is an
+image-to-3D reconstruction (TRELLIS on Hugging Face, as Gaussian splats for the three main
+images) or a monocular depth estimate (Depth Anything V2, run locally) for the photo reliefs,
+cut out, cleaned and coloured from the photo. Each model is an
 adaptation of its photographs and is shared under the same licence (CC BY-SA where the
 photo is CC BY-SA).
 
 **Namdroling (Tibetan room)**
-- Shakyamuni (`tibetan-shakyamuni.glb`) and the torana behind it (`tibetan-torana.glb`):
+- Shakyamuni (`tibetan-shakyamuni.spz`, mesh stand-in `tibetan-shakyamuni.glb`) and the torana
+  behind it (`tibetan-torana.glb`):
   [Statue in 2011 detail, Namrodoling Monastery (Golden Temple) Bylakuppe 6746 (cropped).JPG](https://commons.wikimedia.org/wiki/File:Statue_in_2011_detail,_Namrodoling_Monastery_(Golden_Temple)_Bylakuppe_6746_(cropped).JPG)
   by Rameshng, CC BY-SA 3.0.
 - Guru Rinpoche (`tibetan-guru-photo.glb`):
@@ -65,11 +67,12 @@ photo is CC BY-SA).
   by กสิณธร ราชโอรส, CC BY-SA 4.0.
 
 **Tōdai-ji (Mahayana room)**
-- The Great Buddha (`mahayana.spz`; mesh stand-in `mahayana-trellis.glb`): shape from
-  [20190121 Tōdai-ji Great Buddha-2.jpg](https://commons.wikimedia.org/wiki/File:20190121_Tōdai-ji_Great_Buddha-2.jpg)
-  by Balon Greyjoy, CC0; warped to and coloured from
+- The Great Buddha (`mahayana.spz`): from
   [Great Buddha at Todaiji, Nara.jpg](https://commons.wikimedia.org/wiki/File:Great_Buddha_at_Todaiji,_Nara.jpg)
-  by Manishprabhune, CC BY-SA 4.0.
+  by Manishprabhune, CC BY-SA 4.0 (the lap, hidden by the altar in the photo, given a plain
+  robed form). The mesh stand-in `mahayana-trellis.glb` is from
+  [20190121 Tōdai-ji Great Buddha-2.jpg](https://commons.wikimedia.org/wiki/File:20190121_Tōdai-ji_Great_Buddha-2.jpg)
+  by Balon Greyjoy, CC0.
 - Nyoirin Kannon (`textures/mahayana/nyoirin.webp`):
   [Nara Todai-ji Daibutsuden Interior Statue of Nyoirin Kannon 1.jpg](https://commons.wikimedia.org/wiki/File:Nara_Todai-ji_Daibutsuden_Interior_Statue_of_Nyoirin_Kannon_1.jpg)
   by Zairon, CC BY 4.0.
