@@ -17,7 +17,11 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
   const grounds = buildGrounds(rng);
   scene.add(tower.group, shrine.group, bodhi.group, grounds.group);
   // the architecture as written by Kimi K3.1 Pro (?site=hand: the earlier hand-made one)
-  if (useKimi()) loadKimi({ tower: tower.group, grounds: grounds.group, bodhi: bodhi.group }, grounds.stupaSpots).then((ids) => console.info('kimi site:', ids.join(', ') || 'no elements yet'));
+  let kimiIn = !useKimi();
+  const kimi = kimiIn ? undefined : loadKimi({ tower: tower.group, grounds: grounds.group, bodhi: bodhi.group }, grounds.stupaSpots).then((ids) => {
+    kimiIn = true;
+    console.info('kimi site:', ids.join(', ') || 'no elements yet');
+  });
   const pilgrims = buildPilgrims(scene, rng);
 
   const colliders: Box2[] = [...TOWER_COLLIDERS, shrine.collider, ...bodhi.colliders, ...grounds.colliders];
@@ -102,6 +106,9 @@ export function bodhgayaSite({ scene, rng }: SiteContext): Site {
       entrance: [new THREE.Vector3(RAIL.x1 + 1.5, 0, 0), new THREE.Vector3(RAIL.x1 - 1.5, 0, 0)],
     },
     shrines,
+    // the Kimi architecture replaces the hand-made pieces it covers (tagged userData.kimi)
+    settled: kimi,
+    keepUnmerged: (o) => !kimiIn && o.userData.kimi !== undefined,
     update(dt, night, elapsed) {
       pilgrims.update(dt);
       tower.update(night);

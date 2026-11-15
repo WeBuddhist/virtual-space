@@ -3,13 +3,15 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { std } from './kit/materials';
 import { daylightAt, makeSky, makeStars } from './kit/sky';
 import { templeClock } from './rooms/clock';
-import type { Box2, Cushion, Site, TempleDef } from './rooms/types';
+import type { Box2, Cushion, Site, SiteContext, TempleDef } from './rooms/types';
 
 export type { Box2, Cushion };
 
 export interface World {
   scene: THREE.Scene;
   site: Site;
+  /** the top-level objects the site added to the scene */
+  siteRoots: THREE.Object3D[];
   floor: THREE.Object3D[];
   cushions: Cushion[];
   burner: THREE.Object3D;
@@ -22,7 +24,7 @@ export interface World {
 }
 
 /** shared environment (sky, sun, day/night, incense) around a temple's own site */
-export function buildWorld(renderer: THREE.WebGLRenderer, temple: TempleDef): World {
+export function buildWorld(renderer: THREE.WebGLRenderer, temple: TempleDef, buildSite: (ctx: SiteContext) => Site): World {
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -44,7 +46,13 @@ export function buildWorld(renderer: THREE.WebGLRenderer, temple: TempleDef): Wo
   sun.shadow.bias = -0.0004;
   scene.add(sun, sun.target);
 
-  const site = temple.buildSite({ scene, temple, rng });
+  const before = new Set(scene.children);
+  const site = buildSite({ scene, temple, rng });
+  // what the site put in the scene: the static merge works within these only
+  const siteRoots = scene.children.filter((o) => !before.has(o));
+  // what visitors click stays its own mesh, free to be highlighted or changed
+  for (const c of site.cushions) c.mesh.userData.noMerge = true;
+  site.burner.object.userData.noMerge = true;
   const BURNER = site.burner.position;
 
   // incense sticks + smoke over the site's burner
@@ -94,7 +102,7 @@ export function buildWorld(renderer: THREE.WebGLRenderer, temple: TempleDef): Wo
   let elapsed = 0;
 
   const world: World = {
-    scene, site,
+    scene, site, siteRoots,
     floor: site.floor, cushions: site.cushions, burner: site.burner.object, colliders: site.colliders,
     groundHeight: (x, z) => site.groundHeight(x, z),
     clampToBounds, addIncense,

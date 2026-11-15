@@ -1,8 +1,4 @@
 import { SEATING, TEMPLE_IDS, type TempleId } from '../../shared/rooms';
-import { bodhgayaSite } from './sites/bodhgaya';
-import { mahayanaSite } from './sites/mahayana';
-import { theravadaSite } from './sites/theravada';
-import { tibetanSite } from './sites/tibetan';
 import type { Resident, TempleDef } from './types';
 
 const seated = (seats: number[]): Resident[] => seats.map((seat) => ({ seat }));
@@ -39,7 +35,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     ],
     // open, clear sky over green lawns: a pale-blue haze far out
     sky: { dayTop: 0x8fb8e2, dayBottom: 0xe2ecf2, fog: 0xdce8ee, fogNear: 90, fogFar: 460 },
-    buildSite: bodhgayaSite,
+    loadSite: () => import('./sites/bodhgaya').then((m) => m.bodhgayaSite),
   },
   tibetan: {
     id: 'tibetan',
@@ -70,7 +66,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     residents: SEATING.tibetan.residents.map((seat, i) => ({ seat, robe: 0x7a1f2b, shirt: 0xf2a33a, pose: i % 2 ? 'beads' : 'kneel' })),
     // tropical blue sky with big cumulus over lawns and areca country
     sky: { dayTop: 0x5f9bd6, dayBottom: 0xe4eef4, fog: 0xd9e6ee, fogNear: 70, fogFar: 380 },
-    buildSite: tibetanSite,
+    loadSite: () => import('./sites/tibetan').then((m) => m.tibetanSite),
   },
   theravada: {
     id: 'theravada',
@@ -93,7 +89,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     residents: seated(SEATING.theravada.residents),
     // hazy tropical sky over the river plain
     sky: { dayTop: 0x92b8d8, dayBottom: 0xdde8ee, fog: 0xd3dfe6, fogNear: 80, fogFar: 380 },
-    buildSite: theravadaSite,
+    loadSite: () => import('./sites/theravada').then((m) => m.theravadaSite),
   },
   mahayana: {
     id: 'mahayana',
@@ -118,7 +114,7 @@ export const TEMPLES: Record<TempleId, TempleDef> = {
     residents: seated(SEATING.mahayana.residents),
     // soft hazy Nara light; the hall is 57 m across, so the haze starts far out
     sky: { dayTop: 0x8fb4dc, dayBottom: 0xdde6ea, fog: 0xd6dfe2, fogNear: 110, fogFar: 560 },
-    buildSite: mahayanaSite,
+    loadSite: () => import('./sites/mahayana').then((m) => m.mahayanaSite),
   },
 };
 

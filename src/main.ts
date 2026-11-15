@@ -15,6 +15,7 @@ import type { BowStyle } from './rooms/types';
 import { buildWorld, type Cushion } from './world';
 import { loadedPhotos, photosPending } from './kit/textures';
 import { statuesPending } from './kit/statue';
+import { MERGED_LAYER, mergeStatic } from './kit/merge';
 import { Avatar, BOW_SECONDS, DEFAULT_LOOK, PALMS_SECONDS, type Pose } from './avatar';
 import { Player } from './player';
 import { Net, fetchRoomCounts, type NetPose, type ServerMsg, type Visitor } from './net';
@@ -65,12 +66,14 @@ applyDom();
 $('temple-name').textContent = pick(temple.name);
 $('temple-place').textContent = pick(temple.place);
 $('loading-name').textContent = pick(temple.name);
+// only this temple's site code (and the photo textures it declares) is fetched
+const sitePending = temple.loadSite();
 await Promise.race([
   Promise.all([document.fonts.load('600 48px "Noto Serif Tibetan"'), document.fonts.load('16px "Noto Sans Tibetan"')]),
   new Promise((r) => setTimeout(r, 2500)),
 ]);
 
-const world = buildWorld(renderer, temple);
+const world = buildWorld(renderer, temple, await sitePending);
 const RESIDENTS = temple.residents.map((r, i) => ({ ...r, ...RESIDENT_LOOKS[i % RESIDENT_LOOKS.length] }));
 const BURNER = world.site.burner.position;
 const BURNER_STAND = world.site.burner.stand;
@@ -881,6 +884,7 @@ function adaptQuality(raw: number) {
 
 // line-of-sight checks for name tags are spread out: each tag is re-checked a few times a second
 const occlusionRay = new THREE.Raycaster();
+occlusionRay.layers.enable(MERGED_LAYER); // buildings merged for drawing still answer from their originals
 const hiddenBehind = new Map<string, { at: number; hidden: boolean }>();
 function occluded(id: string, head: THREE.Vector3, dist: number) {
   const occ = world.site.occluders;
@@ -984,10 +988,22 @@ connect();
 // shaders, so walking around afterwards does not hitch on mid-play loads.
 const tSettle = performance.now();
 await Promise.race([
-  Promise.allSettled([...photosPending(), ...statuesPending()]),
+  Promise.allSettled([...photosPending(), ...statuesPending(), world.site.settled]),
   new Promise((r) => setTimeout(r, 9000)),
 ]);
 const tAssets = performance.now();
+// bake the meshes that never move into a few merged ones: thousands of draw calls become
+// hundreds. The site's animations are stepped through day and night to see what moves.
+// (dev: ?merge=0 leaves everything unmerged, to compare)
+const merge = import.meta.env.DEV && params.get('merge') === '0' ? { candidates: 0, animated: 0, replaced: 0, merged: 0 } : mergeStatic(world.siteRoots, scene, {
+  animate() {
+    for (const night of [0, 1, 0.5]) {
+      for (let i = 1; i <= 4; i++) world.site.update(0.25, night, 40 + night * 9 + i * 0.25);
+    }
+  },
+  skip: (o) => world.site.keepUnmerged?.(o) ?? false,
+});
+const tMerge = performance.now();
 for (const t of loadedPhotos()) renderer.initTexture(t);
 await renderer.compileAsync(scene, camera);
 // warm-up frame behind the veil: compiles the programs compileAsync does not cover
@@ -995,5 +1011,20 @@ await renderer.compileAsync(scene, camera);
 // the shadow map, so the visitor never feels those compiles as a freeze mid-play
 world.update(0, new Date());
 composer.render();
-console.info(`load: world ${(tSettle - (performance as any).__t0).toFixed(0)}ms, assets ${(tAssets - tSettle).toFixed(0)}ms, gpu ${(performance.now() - tAssets).toFixed(0)}ms`);
+// Indoor spot and point lights never move, so their shadow maps are drawn once, not every
+// frame (each one re-renders every shadow caster). Only the sun's shadow stays live, for
+// the walking visitors. A statue that lands after the veil lifts refreshes them once more.
+const fixedShadows: THREE.LightShadow[] = [];
+scene.traverse((o) => {
+  if ((o as THREE.Light).isLight && o.castShadow && !(o as THREE.DirectionalLight).isDirectionalLight) {
+    fixedShadows.push((o as THREE.Light).shadow!);
+  }
+});
+for (const s of fixedShadows) { s.autoUpdate = false; s.needsUpdate = true; }
+// statue models and splats swap in during the first seconds: redraw those shadows a few times
+const refreshShadows = () => fixedShadows.forEach((s) => { s.needsUpdate = true; });
+Promise.allSettled(statuesPending()).then(refreshShadows);
+for (const sec of [3, 8, 15, 30]) setTimeout(refreshShadows, sec * 1000);
+if (import.meta.env.DEV) Object.assign(window, { __perf: { renderer, scene, camera, composer, merge, world, THREE } });
+console.info(`load: world ${(tSettle - (performance as any).__t0).toFixed(0)}ms, assets ${(tAssets - tSettle).toFixed(0)}ms, merge ${(tMerge - tAssets).toFixed(0)}ms (${merge.replaced} meshes into ${merge.merged}), gpu ${(performance.now() - tMerge).toFixed(0)}ms`);
 frame();

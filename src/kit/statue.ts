@@ -235,5 +235,6 @@ export function loadStatue(id: string, face: FaceStyle): Promise<THREE.Group> {
     });
     cache.set(key, p);
   }
-  return p.then((g) => g.clone(true));
+  // statues are stand-ins that give way to splats, or get refinished: never baked into a merge
+  return p.then((g) => { const c = g.clone(true); c.userData.noMerge = true; return c; });
 }

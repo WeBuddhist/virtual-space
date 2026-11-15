@@ -242,6 +242,7 @@ function shoro(b: Batch, x: number, y: number, z: number) {
 /** sika deer: a body that walks, a head that dips to graze */
 function makeDeer(coat: THREE.Material, pale: THREE.Material, dark: THREE.Material) {
   const deer = new THREE.Group();
+  deer.userData.noMerge = true; // stands grazing for many seconds, then wanders off
   const body = new Batch(false);
   body.add(new THREE.SphereGeometry(0.5, 12, 8).scale(0.62, 0.62, 1.15), coat, 0, 0.9, 0);
   body.add(new THREE.SphereGeometry(0.2, 8, 6).scale(1, 0.9, 0.5), pale, 0, 0.95, -0.55);

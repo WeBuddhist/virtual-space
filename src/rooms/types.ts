@@ -83,6 +83,13 @@ export interface Site {
   kora?: { path: THREE.Vector3[]; inside(p: THREE.Vector3): boolean; entrance: THREE.Vector3[] };
   /** night is 0 by day and 1 at night; drive lamps, flags, water… */
   update(dt: number, night: number, elapsed: number): void;
+  /**
+   * Resolves once parts that load after the build (and replace what stood in) are in.
+   * Static meshes are merged after it, behind the loading veil (kit/merge.ts).
+   */
+  settled?: Promise<unknown>;
+  /** subtrees not to merge yet: stand-ins still waiting to be replaced when the merge runs */
+  keepUnmerged?(o: THREE.Object3D): boolean;
 }
 
 export interface SiteContext {
@@ -115,5 +122,6 @@ export interface TempleDef {
   residents: Resident[];
   /** sky colours and how far the haze starts and ends (metres) */
   sky?: { dayTop: number; dayBottom: number; fog: number; fogNear?: number; fogFar?: number };
-  buildSite(ctx: SiteContext): Site;
+  /** loads the temple's bespoke site code on demand, so a visit fetches only its own temple */
+  loadSite(): Promise<(ctx: SiteContext) => Site>;
 }

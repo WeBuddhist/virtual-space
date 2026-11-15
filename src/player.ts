@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Avatar } from './avatar';
 import type { Box2, Cushion, World } from './world';
+import { MERGED_LAYER } from './kit/merge';
 
 // matched to the captured walk cycle so the feet do not slide
 const SPEED = 1.5;
@@ -151,6 +152,8 @@ export class Player {
     const rect = this.el.getBoundingClientRect();
     const ndc = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.ray.setFromCamera(ndc, this.camera);
+    // floors merged for drawing still answer clicks from their originals
+    this.ray.layers.enable(MERGED_LAYER);
     const targets = [this.world.burner, ...this.world.cushions.map((c) => c.mesh), ...this.world.floor];
     const hit = this.ray.intersectObjects(targets, true)[0];
     if (!hit) return;

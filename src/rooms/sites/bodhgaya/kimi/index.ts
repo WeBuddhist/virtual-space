@@ -107,10 +107,14 @@ export async function loadKimi(parents: Record<string, THREE.Object3D>, stupaSpo
     }
   };
   const loaded: string[] = [];
-  for (const [path, load] of Object.entries(modules)) {
+  // fetch every module at once (one after another they took seconds), then build in order
+  const fetched = await Promise.all(Object.entries(modules).map(([path, load]) => {
     const id = path.slice(2, -3);
-    let mod: Module;
-    try { mod = await load(); } catch (e) { console.warn(`kimi ${id}:`, e); continue; }
+    return load().then((mod) => ({ id, mod }), (e) => { console.warn(`kimi ${id}:`, e); return null; });
+  }));
+  for (const entry of fetched) {
+    if (!entry) continue;
+    const { id, mod } = entry;
     try {
       if (id === 'tower') parents.tower.add(place(mod.build(), new THREE.Vector3((TEMPLE.x0 + TEMPLE.x1) / 2, 0, 0), EAST));
       else if (id === 'portico') parents.tower.add(place(mod.build(), new THREE.Vector3(TEMPLE.x1, 0, 0), EAST));

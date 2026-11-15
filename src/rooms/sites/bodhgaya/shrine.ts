@@ -271,6 +271,7 @@ export function buildShrine(rng: () => number) {
 
   // halo behind the head
   const h = halo();
+  h.userData.noMerge = true; // hidden once the splat (which has its own halo) arrives
   h.position.set(BACK + 0.05, PLINTH_TOP + 0.12 + 0.93 * STATUE_SCALE, 0);
   h.rotation.y = Math.PI / 2;
   group.add(h);
